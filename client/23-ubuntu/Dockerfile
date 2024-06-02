@@ -18,8 +18,8 @@ LABEL org.label-schema.schema-version="1.0" \
 ENV BAREOS_DAEMON_USER bareos
 ENV BAREOS_DAEMON_GROUP bareos
 ENV DEBIAN_FRONTEND noninteractive
-ENV BAREOS_KEY http://download.bareos.org/bareos/release/23/xUbuntu_20.04/Release.key
-ENV BAREOS_REPO http://download.bareos.org/bareos/release/23/xUbuntu_20.04/
+ENV BAREOS_KEY https://download.bareos.org/current/xUbuntu_22.04/Release.key
+ENV BAREOS_REPO https://download.bareos.org/current/xUbuntu_22.04/
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
