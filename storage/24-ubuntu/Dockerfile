@@ -23,10 +23,8 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update -qq \
  && apt-get -qq -y install --no-install-recommends curl tzdata gnupg \
- && curl -Ls $BAREOS_KEY -o /tmp/bareos.key \
- && apt-key --keyring /etc/apt/trusted.gpg.d/breos-keyring.gpg \
-    add /tmp/bareos.key \
- && echo "deb $BAREOS_REPO /" > /etc/apt/sources.list.d/bareos.list \
+ && curl -Ls $BAREOS_KEY -o /usr/share/keyrings/bareos.gpg \
+ && echo "deb [signed-by=/usr/share/keyrings/bareos.gpg] $BAREOS_REPO /" > /etc/apt/sources.list.d/bareos.list \
  && apt-get update -qq \
  && apt-get install -qq -y --no-install-recommends \
     bareos-storage bareos-tools bareos-storage-tape mtx scsitools \
