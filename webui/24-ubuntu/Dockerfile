@@ -15,15 +15,15 @@ LABEL org.label-schema.schema-version="1.0" \
       org.label-schema.vcs-url="https://github.com/barcus/bareos" \
       org.label-schema.version=$VERSION
 
-ENV BAREOS_KEY https://download.bareos.org/current/xUbuntu_24.04/Release.key
-ENV BAREOS_REPO https://download.bareos.org/current/xUbuntu_24.04/
-ENV DEBIAN_FRONTEND noninteractive
+ENV BAREOS_KEY=http://download.bareos.org/current/xUbuntu_24.04/Release.key
+ENV BAREOS_REPO=http://download.bareos.org/current/xUbuntu_24.04/
+ENV DEBIAN_FRONTEND=noninteractive
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update -qq \
  && apt-get -qq -y install --no-install-recommends curl tzdata gnupg \
- && curl -Ls $BAREOS_KEY -o /usr/share/keyrings/bareos.gpg \
+ && curl -Ls $BAREOS_KEY | gpg --dearmor -o /usr/share/keyrings/bareos.gpg \
  && echo "deb [signed-by=/usr/share/keyrings/bareos.gpg] $BAREOS_REPO /" > /etc/apt/sources.list.d/bareos.list \
  && apt-get update -qq \
  && apt-get install -qq -y --no-install-recommends \

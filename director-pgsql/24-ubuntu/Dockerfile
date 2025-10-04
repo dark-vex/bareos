@@ -15,16 +15,16 @@ LABEL org.label-schema.schema-version="1.0" \
       org.label-schema.vcs-url="https://github.com/barcus/bareos" \
       org.label-schema.version=$VERSION
 
-ENV DEBIAN_FRONTEND noninteractive
-ENV BAREOS_KEY https://download.bareos.org/current/xUbuntu_24.04/Release.key
-ENV BAREOS_REPO https://download.bareos.org/current/xUbuntu_24.04/
-ENV BAREOS_DPKG_CONF bareos-database-common bareos-database-common
+ENV DEBIAN_FRONTEND=noninteractive
+ENV BAREOS_KEY=http://download.bareos.org/current/xUbuntu_24.04/Release.key
+ENV BAREOS_REPO=http://download.bareos.org/current/xUbuntu_24.04/
+ENV BAREOS_DPKG_CONF="bareos-database-common bareos-database-common"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update -qq \
  && apt-get -qq -y install --no-install-recommends curl tzdata gnupg \
- && curl -Ls $BAREOS_KEY -o /usr/share/keyrings/bareos.gpg \
+ && curl -Ls $BAREOS_KEY | gpg --dearmor -o /usr/share/keyrings/bareos.gpg \
  && echo "deb [signed-by=/usr/share/keyrings/bareos.gpg] $BAREOS_REPO /" > /etc/apt/sources.list.d/bareos.list \
  && echo "${BAREOS_DPKG_CONF}/dbconfig-install boolean false" \
     | debconf-set-selections \
@@ -38,7 +38,7 @@ RUN apt-get update -qq \
     | debconf-set-selections \
  && apt-get update -qq \
  && apt-get install -qq -y --no-install-recommends \
-    bareos postgresql-client bareos-tools \
+    bareos postgresql-client bareos-database-tools \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
