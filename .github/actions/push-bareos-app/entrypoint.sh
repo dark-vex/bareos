@@ -27,10 +27,10 @@ while read line ; do
   re='^[0-9]+-alpine.*$'
   if [[ $version =~ $re ]] ; then
     build_tag="${version}-${arch}"
-    rm_tag="$rm_tag ${GITHUB_REPOSITORY}-${app}:${build_tag}"
+    rm_tag="$rm_tag ${INPUT_REGISTRY}/${GITHUB_REPOSITORY}-${app}:${build_tag}"
   fi
   # Push build tags
-  docker push "${GITHUB_REPOSITORY}-${app}:${build_tag}"
+  docker push "${INPUT_REGISTRY}/${GITHUB_REPOSITORY}-${app}:${build_tag}"
 done < "${workdir}/app_build.txt"
 echo ::endgroup::
 
@@ -38,16 +38,16 @@ echo ::group::Push additional tags
 while read build_app s_tag t_tag ; do
   # Push additional tags for Ubuntu 
   if [[ $s_tag =~ ^[a-z0-9]+-ubuntu.*$ ]]; then
-    docker tag "${GITHUB_REPOSITORY}-${build_app}:${s_tag}" \
-      "${GITHUB_REPOSITORY}-${build_app}:${t_tag}"
-    docker push "${GITHUB_REPOSITORY}-${build_app}:${t_tag}"
+    docker tag "${INPUT_REGISTRY}/${GITHUB_REPOSITORY}-${build_app}:${s_tag}" \
+      "${INPUT_REGISTRY}/${GITHUB_REPOSITORY}-${build_app}:${t_tag}"
+    docker push "${INPUT_REGISTRY}/${GITHUB_REPOSITORY}-${build_app}:${t_tag}"
   fi
   # Create and push manifest for Alpine (arm64 + amd64)
   if [[ $s_tag =~ ^[a-z0-9]+-alpine.*$ ]]; then
-    docker manifest create "${GITHUB_REPOSITORY}-${build_app}:${t_tag}" \
-      "${GITHUB_REPOSITORY}-${build_app}:${s_tag}-amd64" \
-      "${GITHUB_REPOSITORY}-${build_app}:${s_tag}-arm64"
-    docker manifest push "${GITHUB_REPOSITORY}-${build_app}:${t_tag}"
+    docker manifest create "${INPUT_REGISTRY}/${GITHUB_REPOSITORY}-${build_app}:${t_tag}" \
+      "${INPUT_REGISTRY}/${GITHUB_REPOSITORY}-${build_app}:${s_tag}-amd64" \
+      "${INPUT_REGISTRY}/${GITHUB_REPOSITORY}-${build_app}:${s_tag}-arm64"
+    docker manifest push "${INPUT_REGISTRY}/${GITHUB_REPOSITORY}-${build_app}:${t_tag}"
   fi
 done < "${workdir}/tag_build.txt"
 echo ::endgroup::
