@@ -111,3 +111,5 @@ jobs:
         uses: ./.github/actions/push-bareos-app
         with:
           docker_pass: ${{ secrets.DOCKER_PASS }}
+          docker_user: ${{ secrets.DOCKER_USER }}
+          registry: ${{ secrets.REGISTRY_URL }}

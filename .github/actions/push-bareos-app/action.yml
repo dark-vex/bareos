@@ -3,10 +3,18 @@ description: 'Push Bareos docker images to Docker Hub'
 author: 'Barcus'
 inputs:
   docker_pass:
-    description: 'Docker Hub password'
+    description: 'Registry Password'
     required: true
+  docker_user:
+   description: 'Registry Username'
+   required: true
+  registry:
+   description: 'Registry URL'
+   required: false
 runs:
   using: 'docker'
   image: 'Dockerfile'
   args:
+    - ${{ inputs.docker_user }}
     - ${{ inputs.docker_pass }}
+    - ${{ inputs.registry }}

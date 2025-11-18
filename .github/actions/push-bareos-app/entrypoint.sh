@@ -15,7 +15,7 @@ done
 echo ::endgroup::
 
 # Connect Docker Hub
-docker login -u 'barcus' -p "${INPUT_DOCKER_PASS}"
+docker login "${INPUT_REGISTRY}" -u "${INPUT_DOCKER_USER}" -p "${INPUT_DOCKER_PASS}"
 
 # Push tags and manfiests
 echo ::group::Push build tags
