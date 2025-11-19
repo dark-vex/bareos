@@ -32,6 +32,7 @@ jobs:
         uses: ./.github/actions/prepare-bareos-app
         with:
           bareos_app: api
+          registry: ${{ secrets.REGISTRY_URL }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -61,6 +62,8 @@ jobs:
 
       - name: Build images
         uses: ./.github/actions/build-bareos-app
+        with:
+          registry: ${{ secrets.REGISTRY_URL }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -90,6 +93,8 @@ jobs:
 
       - name: Load and test images
         uses: ./.github/actions/test-bareos-app
+        with:
+          registry: ${{ secrets.REGISTRY_URL }}
 
   deploy:
     needs: test
