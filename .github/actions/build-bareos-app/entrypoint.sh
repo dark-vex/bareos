@@ -32,7 +32,7 @@ while read app version arch app_path ; do
     --build-arg VCS_REF=$(git rev-parse --short HEAD) \
     --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
     --build-arg NAME="${GITHUB_REPOSITORY}-${app}" \
-    --output "type=docker,dest=${workdir}/bareos-${app}-${tag}.tar,name=${GITHUB_REPOSITORY}-${app}:${tag}" \
+    --output "type=docker,dest=${workdir}/bareos-${app}-${tag}.tar,name=${INPUT_REGISTRY}/${GITHUB_REPOSITORY}-${app}:${tag}" \
     "${app_path}"
 
   if [[ $? -ne 0 ]] ; then

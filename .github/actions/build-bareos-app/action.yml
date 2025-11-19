@@ -1,6 +1,12 @@
 name: 'build-bareos-app'
 description: 'Build Bareos app images'
 author: 'Barcus'
+inputs:
+  registry:
+   description: 'Registry URL'
+   required: true
 runs:
   using: 'docker'
   image: 'Dockerfile'
+  args:
+    - ${{ inputs.registry }}
