@@ -121,10 +121,10 @@ fi
 
 if [ "${DB_UPDATE}" == 'true' ] ; then
   # Try Postgres upgrade
-  echo "Bareoos DB update"
-  echo "Bareoos DB update: Update tables"
+  echo "Bareos DB update"
+  echo "Bareos DB update: Update tables"
   /etc/bareos/scripts/update_bareos_tables  2>/dev/null
-  echo "Bareoos DB update: Grant privileges"
+  echo "Bareos DB update: Grant privileges"
   /etc/bareos/scripts/grant_bareos_privileges  2>/dev/null
 fi
 
