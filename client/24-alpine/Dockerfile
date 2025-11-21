@@ -1,5 +1,5 @@
 # Dockerfile Bareos client/file daemon
-FROM alpine:3.22
+FROM alpine:3.16
 
 LABEL maintainer="barcus@tou.nu"
 
@@ -20,7 +20,7 @@ LABEL org.label-schema.schema-version="1.0" \
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
-RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community bareos-filedaemon openssh-client tar shadow bash su-exec
+RUN apk add --no-cache bareos-filedaemon openssh-client tar shadow bash su-exec
 
 RUN tar czf /bareos-fd.tgz /etc/bareos/bareos-fd.d
 RUN mkdir /run/bareos \

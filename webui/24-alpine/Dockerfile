@@ -1,7 +1,7 @@
 # Bareos Web-ui Dockerfile
-FROM alpine:3.22
+FROM alpine:3.16
 
-RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community bareos-webui-nginx
+RUN apk add --no-cache bareos-webui-nginx
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod u+x /docker-entrypoint.sh
