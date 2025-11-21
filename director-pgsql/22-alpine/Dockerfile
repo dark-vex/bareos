@@ -17,7 +17,7 @@ LABEL org.label-schema.schema-version="1.0" \
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
-RUN apk update && apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community bareos bareos-postgresql postgresql-client curl tzdata tar
+RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community bareos bareos-postgresql postgresql-client curl tzdata tar
 
 RUN tar czf /bareos-dir.tgz /etc/bareos
 RUN mkdir /run/bareos \
