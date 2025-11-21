@@ -32,7 +32,6 @@ jobs:
         uses: ./.github/actions/prepare-bareos-app
         with:
           bareos_app: storage
-          registry: ${{ secrets.REGISTRY_URL }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
