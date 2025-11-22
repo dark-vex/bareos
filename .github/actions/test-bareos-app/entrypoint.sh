@@ -28,13 +28,14 @@ while read app version arch path ; do
   # Define args and command
   if [[ $version =~ $re_alpine ]] ; then
     build_tag="${version}-${arch}"
-    alpine_pkg='bareos'
 
-    [[ "$app" == "api" ]]
-    CMD="python -m pip show bareos-restapi | awk '/Version:/ {print \$2}'"
-
-    [[ "$app" == "webui" ]] && alpine_pkg='bareos-webui'
-    CMD="apk list --installed $alpine_pkg" 
+    if [[ "$app" == "api" ]] ; then
+      CMD="python -m pip show bareos-restapi | awk '/Version:/ {print \$2}'"
+    elif [[ "$app" == "webui" ]] ; then
+      CMD="apk list --installed bareos-webui"
+    else
+      CMD="apk list --installed bareos"
+    fi
   fi
 
   if [[ $version =~ $re_ubuntu ]] ; then
