@@ -30,7 +30,7 @@ while read app version arch path ; do
     build_tag="${version}-${arch}"
     alpine_pkg='bareos'
 
-    [[ "$app" == "api" ]]; then
+    [[ "$app" == "api" ]]
     CMD="python -m pip show bareos-restapi | awk '/Version:/ {print \$2}'"
 
     [[ "$app" == "webui" ]] && alpine_pkg='bareos-webui'
