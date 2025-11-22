@@ -30,7 +30,7 @@ while read app version arch path ; do
     build_tag="${version}-${arch}"
 
     if [[ "$app" == "api" ]] ; then
-      CMD="python -m pip show bareos-restapi | awk '/Version:/ {print \$2}'"
+      CMD="python -m pip show bareos-restapi | grep 'Version:' | awk '{print $2}'"
     elif [[ "$app" == "webui" ]] ; then
       CMD="apk list --installed bareos-webui"
     else
