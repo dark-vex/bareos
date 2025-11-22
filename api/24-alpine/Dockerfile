@@ -1,5 +1,4 @@
-# Dockerfile Bareos client/file daemon
-FROM alpine:3.16
+FROM python:3.10-alpine
 
 LABEL maintainer="barcus@tou.nu"
 
@@ -8,9 +7,6 @@ ARG NAME
 ARG VCS_REF
 ARG VERSION
 
-ENV BAREOS_DAEMON_USER bareos
-ENV BAREOS_DAEMON_GROUP bareos
-
 LABEL org.label-schema.schema-version="1.0" \
       org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.name=$NAME \
@@ -18,18 +14,19 @@ LABEL org.label-schema.schema-version="1.0" \
       org.label-schema.vcs-url="https://github.com/barcus/bareos" \
       org.label-schema.version=$VERSION
 
-SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+RUN pip install --no-cache-dir --upgrade pip==22.0.4
 
-RUN apk add --no-cache bareos-filedaemon openssh-client tar shadow bash su-exec
+RUN adduser -D bareos
+USER bareos
+WORKDIR /home/bareos
 
-RUN tar czf /bareos-fd.tgz /etc/bareos/bareos-fd.d
-RUN mkdir /run/bareos \
- && chown bareos /run/bareos
+ENV PATH="/home/bareos/.local/bin:${PATH}"
+RUN pip install --no-cache-dir "bareos-restapi>=24*,<25*"
 
-COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY --chown=bareos docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod a+x /docker-entrypoint.sh
 
-EXPOSE 9102
+EXPOSE 8000
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["/usr/sbin/bareos-fd", "-f"]
+CMD ["uvicorn","--log-level", "debug", "--host", "0.0.0.0", "bareos_restapi:app", "--reload"]
