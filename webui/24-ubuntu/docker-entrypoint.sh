@@ -1,26 +1,25 @@
-#!/usr/bin/env ash
+#!/usr/bin/env bash
 
-if [ ! -f /etc/bareos-webui/bareos-config.control ]
-  then
-  tar xfvz /bareos-webui-config.tgz
+if [ ! -f /etc/bareos-webui/bareos-config.control ];then
+  tar xzf /bareos-webui.tgz --backup=simple --suffix=.before-control
 
   # Update bareos-webui config
-  sed -i "s/diraddress = \"localhost\"/diraddress = \"${BAREOS_DIR_HOST}\"/" /etc/bareos-webui/directors.ini
+  sed -i 's#diraddress.*#diraddress = '\""${BAREOS_DIR_HOST}"\"'#' \
+    /etc/bareos-webui/directors.ini
 
   # Control file
   touch /etc/bareos-webui/bareos-config.control
 fi
 
-if [ ! -f /usr/share/bareos-webui/bareos-config.control ]
-  then
-  tar xfvz /bareos-webui-code.tgz
-  touch /usr/share/bareos-webui/bareos-config.control
+apache_conf="/etc/apache2/sites-available/000-default.conf"
+
+# Set document root
+sed -i "s#/var/www/html#/usr/share/bareos-webui/public#g" $apache_conf
+
+# Enable Apache server stats
+if [ "${SERVER_STATS}" == "yes" ]; then
+  sed -i 's!#ServerName.*!Alias /server-status /var/www/dummy!' $apache_conf
 fi
 
-# Fix nginx 'client_max_body_size'
-sed -i "s#client_max_body_size 1m#client_max_body_size 20m#" /etc/nginx/nginx.conf
-
-# set php-fpm host andd port
-sed -i "s/fastcgi_pass 127.0.0.1:9000;/fastcgi_pass ${PHP_FPM_HOST}:${PHP_FPM_PORT};/" /etc/nginx/http.d/bareos-webui.conf
-
+# Run Dockerfile CMD
 exec "$@"
