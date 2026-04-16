@@ -47,4 +47,4 @@ jobs:
       - name: Wait 60s then run Bareos console
         run: |
           sleep 60
-          docker exec bareos_bareos-dir_1 bconsole
+          docker exec bareos-bareos-dir-1 bconsole
