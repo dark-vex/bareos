@@ -49,6 +49,4 @@ jobs:
       - name: Wait 60s then run Bareos console
         run: |
           sleep 60
-          docker ps -a
-          docker logs bareos-bareos-dir-1
           docker exec bareos-bareos-dir-1 bconsole
