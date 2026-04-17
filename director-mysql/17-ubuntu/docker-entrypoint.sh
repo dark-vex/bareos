@@ -1,23 +1,7 @@
 #!/usr/bin/env bash
 
-github_bareos='raw.githubusercontent.com/bareos/bareos'
-webui_admin_conf='master/webui/install/bareos/bareos-dir.d/profile/webui-admin.conf'
-admin_conf='master/webui/install/bareos/bareos-dir.d/console/admin.conf.example'
-
 if [ ! -f /etc/bareos/bareos-config.control ]; then
   tar xzf /bareos-dir.tgz --backup=simple --suffix=.before-control
-
-  # Download default admin profile config
-  if [ ! -f /etc/bareos/bareos-dir.d/profile/webui-admin.conf ]; then
-    curl --silent --insecure "https://${github_bareos}/${webui_admin_conf}" \
-      --output /etc/bareos/bareos-dir.d/profile/webui-admin.conf
-  fi
-
-  # Download default webUI admin config
-  if [ ! -f /etc/bareos/bareos-dir.d/console/admin.conf ]; then
-    curl --silent --insecure "https://${github_bareos}/${admin_conf}" \
-      --output /etc/bareos/bareos-dir.d/console/admin.conf
-  fi
 
   # Update bareos-director configs
   # Director / mycatalog & mail report

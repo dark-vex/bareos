@@ -60,7 +60,7 @@ services:
       - /data/bareos/config/webui:/etc/bareos-webui
 
   bareos-db:
-    image: mysql:5.6
+    image: mysql:5.7
     volumes:
       - /data/mysql/data:/var/lib/mysql
     environment:

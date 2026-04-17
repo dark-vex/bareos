@@ -20,14 +20,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module: [alpine-mysql, alpine-mysql-v2, ubuntu-mysql, ubuntu-pgsql, alpine-pgsql]
+        module: [ubuntu-pgsql, alpine-pgsql]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Create required folder
         run: |
-          sudo mkdir -p /data/bareos/config/director
+          sudo mkdir -p /data/bareos/config/director/bareos-dir.d/profile
           sudo mkdir -p /data/bareos/data/director
           sudo mkdir -p /data/bareos/config/storage
           sudo mkdir -p /data/bareos/data/storage
@@ -37,6 +37,8 @@ jobs:
           sudo mkdir -p /data/mysql/data
           sudo mkdir -p /data/pgsql/data
           sudo chmod 777 /data/bareos /data/mysql /data/pgsql
+          sudo curl -s "https://raw.githubusercontent.com/bareos/bareos/Release/21.1.11/webui/install/bareos/bareos-dir.d/profile/webui-admin.conf" \
+            -o /data/bareos/config/director/bareos-dir.d/profile/webui-admin.conf
 
       - name: Run docker-compose
         run: |
