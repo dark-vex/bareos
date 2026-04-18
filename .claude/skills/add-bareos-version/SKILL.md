@@ -17,6 +17,7 @@ See `references/upstream-sources.md` for the authoritative mapping of Bareos ver
 ### 1. Resolve inputs
 
 Accept: a list of `{component, version, flavor}` tuples. Examples:
+
 - "Add 22-ubuntu for all standard components" → four tuples: director-pgsql, storage, client, webui, each with version=22, flavor=ubuntu
 - "Generate client/23-alpine" → one tuple
 
@@ -25,18 +26,21 @@ Accept: a list of `{component, version, flavor}` tuples. Examples:
 ### 2. Look up upstream source
 
 From `references/upstream-sources.md`:
+
 - If the version has no upstream source for the requested flavor → stop and tell the user what's missing.
 - If the source is marked `current/` → note that the image will install whatever Bareos is current (as of the build date, not the directory name).
 
 ### 3. Find the reference template
 
 Find the nearest existing directory with the **same component** and **same flavor**:
+
 - Same component, closest version, same flavor (e.g. for client/22-ubuntu, reference is client/21-ubuntu)
 - Read its `Dockerfile` and `docker-entrypoint.sh` in full — pass this verbatim to the subagent
 
 ### 4. Invoke ollama-orchestrator
 
 Call `Agent(subagent_type: "ollama-orchestrator", prompt: <detailed prompt>)` with:
+
 - The reference Dockerfile and entrypoint verbatim (inside a code fence)
 - The target directory name (e.g. `client/22-ubuntu`)
 - The FROM change: e.g. `FROM ubuntu:jammy` (Ubuntu 22.04)
@@ -49,6 +53,7 @@ Call `Agent(subagent_type: "ollama-orchestrator", prompt: <detailed prompt>)` wi
 ### 5. Write files
 
 From the subagent's output, extract the Dockerfile and docker-entrypoint.sh, then:
+
 ```bash
 mkdir -p <component>/<version>-<flavor>
 # Write Dockerfile
