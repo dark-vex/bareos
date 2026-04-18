@@ -28,6 +28,11 @@ for file in $docker_files; do
   base_img=$(echo "$version_dir" |cut -d'-' -f2)
   [[ $version -ge 20 ]] && default_backend='pgsql'
 
+  # disable ubuntu builds until source-built packages are available (PR #2)
+  if [ "${base_img}" == "ubuntu" ]; then
+    continue
+  fi
+
   # Define default tag
   tag_build="${version}-${base_img}"
   if [ "${app}" == 'director' ]; then
