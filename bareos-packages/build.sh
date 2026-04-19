@@ -38,7 +38,11 @@ case "${BAREOS_BRANCH}" in
             libcli11-dev libfmt-dev libmsgsl-dev \
             libutfcpp-dev libxxhash-dev libgtest-dev libgmock-dev \
             libprotobuf-dev protobuf-compiler protobuf-compiler-grpc \
-            libgrpc++-dev libgrpc-dev
+            libgrpc++-dev libgrpc-dev \
+            libtirpc-dev libnsl-dev
+
+        echo "==> Stubbing pg_ctl (systemtests CMakeLists requires it; tests not run) ..."
+        printf '#!/bin/sh\n' > /usr/local/bin/pg_ctl && chmod +x /usr/local/bin/pg_ctl
 
         echo "==> Building tl-expected from source (no noble package) ..."
         git clone --depth 1 --branch v1.1.0 \
