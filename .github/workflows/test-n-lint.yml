@@ -14,7 +14,7 @@ jobs:
           url_api="https://api.github.com/repos/hadolint/hadolint/releases/latest"
           version=$(curl --silent $url_api | jq -r .tag_name)
           url_rlz="https://github.com/hadolint/hadolint/releases/download/${version}"
-          file='hadolint-Linux-x86_64'
+          file='hadolint-linux-x86_64'
           wget "${url_rlz}/$file"
           chmod u+x "$file"
           ln -s "$file" hadolint
