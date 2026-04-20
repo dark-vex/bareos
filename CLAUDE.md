@@ -84,6 +84,10 @@ See `.env.dist` for all required variables. The most important ones for the Dire
 | `SMTP_HOST`, `ADMIN_MAIL` | Mail reporting |
 | `WEBHOOK_NOTIFICATION`, `WEBHOOK_TYPE`, `WEBHOOK_URL` | Slack/Telegram notifications |
 
+## Git and GitHub Workflow
+
+This repo is a fork. **Always push branches and open PRs against the fork (`origin`), never against the upstream repository.** When using `gh` commands, always pass `--repo` to target the fork explicitly.
+
 ## CI/CD
 
 GitHub Actions workflows in `.github/workflows/`:
