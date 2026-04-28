@@ -4,6 +4,8 @@
 ![Based OS][os-based-ubuntu] ![Based OS][os-based-alpine]
 ![Badge amd64][arch-amd64-img] ![Badge arm64][arch-arm64/v8-img]
 
+## Note: currently the images are hosted on a private repo. They will be publish on docker.io or ghcr.io once the CI/CD process is stable
+
 ## About
 
 This package provides images for [Bareos][bareos-href] :
@@ -210,7 +212,7 @@ docker run -t -i \
   -e PGUSER=postgres \
   -v /data/pgsql/data:/pg_old/data \
   -v /data/pgsql-new/data:/pg_new/data \
-  barcus/postgresql-upgrade
+  dark-vex/postgresql-upgrade
 ```
 
 After sucessful migration, use the new folder `/data/pgsql-new/data` and the
@@ -226,7 +228,7 @@ Build your own docker-compose file with this template :
 version: '3'
 services:
   bareos-dir:
-    image: barcus/bareos-director:latest #latest director-pgsql based on ubuntu
+    image: dark-vex/bareos-director:latest #latest director-pgsql based on ubuntu
     volumes:
       - <BAREOS_CONF_PATH>:/etc/bareos
       - <BAREOS_DATA_PATH>:/var/lib/bareos #required for MyCatalog backup
@@ -257,7 +259,7 @@ services:
       - bareos-db
 
   bareos-sd:
-    image: barcus/bareos-storage:latest
+    image: dark-vex/bareos-storage:latest
     ports:
       - 9103:9103
     volumes:
@@ -267,7 +269,7 @@ services:
       - BAREOS_SD_PASSWORD=${BAREOS_SD_PASSWORD} # defined in .env file
 
   bareos-fd:
-    image: barcus/bareos-client:latest
+    image: dark-vex/bareos-client:latest
     volumes:
       - <BAREOS_CONF_PATH>:/etc/bareos
       - <BAREOS_DATA_PATH>:/var/lib/bareos-director #required for MyCatalog backup
@@ -276,7 +278,7 @@ services:
       - FORCE_ROOT=false
 
   bareos-webui:
-    image: barcus/bareos-webui:latest
+    image: dark-vex/bareos-webui:latest
     ports:
       - 8080:80
     environment:
@@ -302,7 +304,7 @@ services:
       - POSTGRES_INITDB_ARGS=--encoding=SQL_ASCII
 
   bareos-api:
-    image: barcus/bareos-api:21
+    image: dark-vex/bareos-api:21
     ports:
     - 8000:8000
     environment:
@@ -370,7 +372,7 @@ Required as catalog backend, simply use the official MySQL/PostgreSQL image
 Build your own Bareos images :
 
 ```bash
-git clone https://github.com/barcus/bareos
+git clone https://github.com/dark-vex/bareos
 cd bareos
 docker build -t director-pqsl:20-alpine director-pgsql/20-alpine
 docker build -t storage:20-alpine storage/20-alpine
@@ -392,16 +394,16 @@ Thanks to @rockyluke :)
 
 For more information visit the Github repositories :
 
-* [bareos-director-mysql](https://github.com/barcus/bareos/tree/master/director-mysql)
-* [bareos-director-pgsql](https://github.com/barcus/bareos/tree/master/director-pgsql)
-* [bareos-storage](https://github.com/barcus/bareos/tree/master/storage)
-* [bareos-client](https://github.com/barcus/bareos/tree/master/client)
-* [bareos-webui](https://github.com/barcus/bareos/tree/master/webui)
+* [bareos-director-mysql](https://github.com/dark-vex/bareos/tree/master/director-mysql)
+* [bareos-director-pgsql](https://github.com/dark-vex/bareos/tree/master/director-pgsql)
+* [bareos-storage](https://github.com/dark-vex/bareos/tree/master/storage)
+* [bareos-client](https://github.com/dark-vex/bareos/tree/master/client)
+* [bareos-webui](https://github.com/dark-vex/bareos/tree/master/webui)
 * [docker-ubuntu](https://github.com/rockyluke/docker-ubuntu)
 
 My Docker hub :
 
-* [docker images](https://hub.docker.com/r/barcus)
+* [docker images](https://hub.docker.com/r/dark-vex)
 
 Enjoy !
 
@@ -409,49 +411,49 @@ Enjoy !
 [arch-arm64/v8-img]: https://img.shields.io/badge/arch-arm64/v8-inactive
 [bareos-href]: https://www.bareos.org
 [bareos-doc]: https://www.bareos.com/learn/documentation
-[build-client-href]: https://github.com/barcus/bareos/actions?query=workflow%3Aci-client
-[build-client-img]: https://github.com/barcus/bareos/workflows/ci-client/badge.svg
-[build-director-href]: https://github.com/barcus/bareos/actions?query=workflow%3Aci-director
-[build-director-img]: https://github.com/barcus/bareos/workflows/ci-director/badge.svg
-[build-img]: https://travis-ci.org/barcus/bareos.svg?branch=master
-[build-storage-href]: https://github.com/barcus/bareos/actions?query=workflow%3Aci-storage
-[build-storage-img]: https://github.com/barcus/bareos/workflows/ci-storage/badge.svg
-[build-url]: https://travis-ci.org/barcus/bareos
-[build-webui-href]: https://github.com/barcus/bareos/actions?query=workflow%3Aci-webui
-[build-webui-img]: https://github.com/barcus/bareos/workflows/ci-webui/badge.svg
-[build-api-href]: https://github.com/barcus/bareos/actions?query=workflow%3Aci-api
-[build-api-img]: https://github.com/barcus/bareos/workflows/ci-api/badge.svg
-[compose-alpinev1-href]: https://github.com/barcus/bareos/blob/master/docker-compose-alpine-v1.yml
-[compose-alpinev2-href]: https://github.com/barcus/bareos/blob/master/docker-compose-alpine-v2.yml
-[compose-ubuntu-mysql-href]: https://github.com/barcus/bareos/blob/master/docker-compose-ubuntu-mysql.yml
-[compose-ubuntu-pgsql-href]: https://github.com/barcus/bareos/blob/master/docker-compose-ubuntu-pgsql.yml
-[compose-db-migration-href]: https://github.com/barcus/bareos/blob/master/bareos-db-migration/docker-compose.yml
+[build-client-href]: https://github.com/dark-vex/bareos/actions?query=workflow%3Aci-client
+[build-client-img]: https://github.com/dark-vex/bareos/workflows/ci-client/badge.svg
+[build-director-href]: https://github.com/dark-vex/bareos/actions?query=workflow%3Aci-director
+[build-director-img]: https://github.com/dark-vex/bareos/workflows/ci-director/badge.svg
+[build-img]: https://travis-ci.org/dark-vex/bareos.svg?branch=master
+[build-storage-href]: https://github.com/dark-vex/bareos/actions?query=workflow%3Aci-storage
+[build-storage-img]: https://github.com/dark-vex/bareos/workflows/ci-storage/badge.svg
+[build-url]: https://travis-ci.org/dark-vex/bareos
+[build-webui-href]: https://github.com/dark-vex/bareos/actions?query=workflow%3Aci-webui
+[build-webui-img]: https://github.com/dark-vex/bareos/workflows/ci-webui/badge.svg
+[build-api-href]: https://github.com/dark-vex/bareos/actions?query=workflow%3Aci-api
+[build-api-img]: https://github.com/dark-vex/bareos/workflows/ci-api/badge.svg
+[compose-alpinev1-href]: https://github.com/dark-vex/bareos/blob/master/docker-compose-alpine-v1.yml
+[compose-alpinev2-href]: https://github.com/dark-vex/bareos/blob/master/docker-compose-alpine-v2.yml
+[compose-ubuntu-mysql-href]: https://github.com/dark-vex/bareos/blob/master/docker-compose-ubuntu-mysql.yml
+[compose-ubuntu-pgsql-href]: https://github.com/dark-vex/bareos/blob/master/docker-compose-ubuntu-pgsql.yml
+[compose-db-migration-href]: https://github.com/dark-vex/bareos/blob/master/bareos-db-migration/docker-compose.yml
 [docker-compose-href]: https://docs.docker.com/compose
 [docker-href]: https://docs.docker.com/install
-[docker-img-dir]: https://img.shields.io/docker/pulls/barcus/bareos-director?label=bareos-director&logo=docker
-[docker-img-fd]: https://img.shields.io/docker/pulls/barcus/bareos-client?label=bareos-client&logo=docker
-[docker-img-sd]: https://img.shields.io/docker/pulls/barcus/bareos-storage?label=bareos-storage&logo=docker
-[docker-img-ui]: https://img.shields.io/docker/pulls/barcus/bareos-webui?label=bareos-webui&logo=docker
-[docker-img-api]: https://img.shields.io/docker/pulls/barcus/bareos-api?label=bareos-api&logo=docker
-[docker-url]: https://registry.hub.docker.com/r/barcus
-[docker-url-dir]: https://registry.hub.docker.com/r/barcus/bareos-director
-[docker-url-fd]: https://registry.hub.docker.com/r/barcus/bareos-client
-[docker-url-sd]: https://registry.hub.docker.com/r/barcus/bareos-storage
-[docker-url-ui]: https://registry.hub.docker.com/r/barcus/bareos-webui
-[docker-url-api]: https://registry.hub.docker.com/r/barcus/bareos-api
+[docker-img-dir]: https://img.shields.io/docker/pulls/dark-vex/bareos-director?label=bareos-director&logo=docker
+[docker-img-fd]: https://img.shields.io/docker/pulls/dark-vex/bareos-client?label=bareos-client&logo=docker
+[docker-img-sd]: https://img.shields.io/docker/pulls/dark-vex/bareos-storage?label=bareos-storage&logo=docker
+[docker-img-ui]: https://img.shields.io/docker/pulls/dark-vex/bareos-webui?label=bareos-webui&logo=docker
+[docker-img-api]: https://img.shields.io/docker/pulls/dark-vex/bareos-api?label=bareos-api&logo=docker
+[docker-url]: https://registry.hub.docker.com/r/dark-vex
+[docker-url-dir]: https://registry.hub.docker.com/r/dark-vex/bareos-director
+[docker-url-fd]: https://registry.hub.docker.com/r/dark-vex/bareos-client
+[docker-url-sd]: https://registry.hub.docker.com/r/dark-vex/bareos-storage
+[docker-url-ui]: https://registry.hub.docker.com/r/dark-vex/bareos-webui
+[docker-url-api]: https://registry.hub.docker.com/r/dark-vex/bareos-api
 [license-img]: https://img.shields.io/badge/License-MIT-yellow.svg
 [os-based-alpine]: https://img.shields.io/badge/os-alpine-9cf
 [os-based-ubuntu]: https://img.shields.io/badge/os-ubuntu-9cf
-[size-alpine-client-png]: https://img.shields.io/docker/image-size/barcus/bareos-client/alpine?label=alpine&style=plastic
-[size-alpine-director-png]: https://img.shields.io/docker/image-size/barcus/bareos-director/alpine?label=alpine&style=plastic
-[size-alpine-storage-png]: https://img.shields.io/docker/image-size/barcus/bareos-storage/alpine?label=alpine&style=plastic
-[size-alpine-webui-png]: https://img.shields.io/docker/image-size/barcus/bareos-webui/alpine?label=alpine&style=plastic
-[size-latest-client-png]: https://img.shields.io/docker/image-size/barcus/bareos-client/latest?label=latest&style=plastic
-[size-latest-director-png]: https://img.shields.io/docker/image-size/barcus/bareos-director/latest?label=latest&style=plastic
-[size-latest-storage-png]: https://img.shields.io/docker/image-size/barcus/bareos-storage/latest?label=latest&style=plastic
-[size-latest-webui-png]: https://img.shields.io/docker/image-size/barcus/bareos-webui/latest?label=latest&style=plastic
-[size-latest-api-png]: https://img.shields.io/docker/image-size/barcus/bareos-api/latest?label=latest&style=plastic
-[run-compose-png]: https://github.com/barcus/bareos/workflows/run-compose/badge.svg
-[psql-upgrade-href]: https://github.com/barcus/postgresql-upgrade
+[size-alpine-client-png]: https://img.shields.io/docker/image-size/dark-vex/bareos-client/alpine?label=alpine&style=plastic
+[size-alpine-director-png]: https://img.shields.io/docker/image-size/dark-vex/bareos-director/alpine?label=alpine&style=plastic
+[size-alpine-storage-png]: https://img.shields.io/docker/image-size/dark-vex/bareos-storage/alpine?label=alpine&style=plastic
+[size-alpine-webui-png]: https://img.shields.io/docker/image-size/dark-vex/bareos-webui/alpine?label=alpine&style=plastic
+[size-latest-client-png]: https://img.shields.io/docker/image-size/dark-vex/bareos-client/latest?label=latest&style=plastic
+[size-latest-director-png]: https://img.shields.io/docker/image-size/dark-vex/bareos-director/latest?label=latest&style=plastic
+[size-latest-storage-png]: https://img.shields.io/docker/image-size/dark-vex/bareos-storage/latest?label=latest&style=plastic
+[size-latest-webui-png]: https://img.shields.io/docker/image-size/dark-vex/bareos-webui/latest?label=latest&style=plastic
+[size-latest-api-png]: https://img.shields.io/docker/image-size/dark-vex/bareos-api/latest?label=latest&style=plastic
+[run-compose-png]: https://github.com/dark-vex/bareos/workflows/run-compose/badge.svg
+[psql-upgrade-href]: https://github.com/dark-vex/postgresql-upgrade
 [bareos-exporter-href]: https://github.com/vierbergenlars/bareos_exporter
 [prometheus-href]: https://prometheus.io
