@@ -49,13 +49,13 @@ Artifacts are uploaded (30-day retention) as `debs-<branch>-<codename>`.
 
 ## Publishing a GitHub Release
 
-Tag the repo with `pkg/<branch>-<codename>-vN` (e.g. `pkg/bareos-22-jammy-v1`) after
-a successful workflow run. The `release` job picks up the artifacts and attaches
-`bareos-22-jammy.tar.gz` (etc.) to the release.
+Tag the repo with `pkg/bareos-packages-vN` after a successful workflow run.
+The `release` job rebuilds the matrix and attaches all package tarballs to the
+same GitHub Release:
 
 ```bash
-git tag pkg/bareos-22-jammy-v1
-git push origin pkg/bareos-22-jammy-v1
+git tag pkg/bareos-packages-v1
+git push origin pkg/bareos-packages-v1
 ```
 
 ## Consuming packages in component Dockerfiles
@@ -63,8 +63,8 @@ git push origin pkg/bareos-22-jammy-v1
 Once a release exists, component Dockerfiles can install from it:
 
 ```dockerfile
-ARG BAREOS_PKG_RELEASE=pkg/bareos-22-jammy-v1
-ARG BAREOS_PKG_REPO=https://github.com/<owner>/<repo>
+ARG BAREOS_PKG_RELEASE=pkg%2Fbareos-packages-v1
+ARG BAREOS_PKG_REPO=https://github.com/Dark-Vex/bareos
 
 ADD ${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/bareos-22-jammy.tar.gz /tmp/bareos-pkgs.tar.gz
 

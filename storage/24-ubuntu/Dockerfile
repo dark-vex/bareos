@@ -15,22 +15,27 @@ LABEL org.label-schema.schema-version="1.0" \
       org.label-schema.vcs-url="https://github.com/barcus/bareos" \
       org.label-schema.version=$VERSION
 
-ENV BAREOS_KEY=http://download.bareos.org/current/xUbuntu_24.04/Release.key
-ENV BAREOS_REPO=http://download.bareos.org/current/xUbuntu_24.04/
 ENV DEBIAN_FRONTEND=noninteractive
+
+ARG BAREOS_PKG_RELEASE=pkg%2Fbareos-packages-v1
+ARG BAREOS_PKG_REPO=https://github.com/Dark-Vex/bareos
+ARG BAREOS_PKG_ASSET=bareos-24-noble.tar.gz
+
+ADD ${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/${BAREOS_PKG_ASSET} /tmp/bareos-pkgs.tar.gz
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN apt-get update -qq \
- && apt-get -qq -y install --no-install-recommends curl tzdata gnupg \
- && curl -Ls $BAREOS_KEY | gpg --dearmor -o /usr/share/keyrings/bareos.gpg \
- && echo "deb [signed-by=/usr/share/keyrings/bareos.gpg] $BAREOS_REPO /" > /etc/apt/sources.list.d/bareos.list \
+RUN mkdir -p /tmp/bareos-debs \
+ && tar -xzf /tmp/bareos-pkgs.tar.gz -C /tmp/bareos-debs \
  && apt-get update -qq \
  && apt-get install -qq -y --no-install-recommends \
-    bareos-storage bareos-tools bareos-storage-tape mtx scsitools \
-    sg3-utils mt-st bareos-storage-droplet \
+    tzdata mtx scsitools sg3-utils mt-st \
+    /tmp/bareos-debs/bareos-common_*.deb \
+    /tmp/bareos-debs/bareos-storage_*.deb \
+    /tmp/bareos-debs/bareos-storage-tape_*.deb \
+    /tmp/bareos-debs/bareos-tools_*.deb \
  && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* /tmp/bareos-pkgs.tar.gz /tmp/bareos-debs
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod u+x /docker-entrypoint.sh

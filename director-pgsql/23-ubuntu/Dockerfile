@@ -1,5 +1,5 @@
 # Bareos director Dockerfile
-FROM ubuntu:noble
+FROM ubuntu:jammy
 
 LABEL maintainer="barcus@tou.nu"
 
@@ -20,7 +20,7 @@ ENV BAREOS_DPKG_CONF="bareos-database-common bareos-database-common"
 
 ARG BAREOS_PKG_RELEASE=pkg%2Fbareos-packages-v1
 ARG BAREOS_PKG_REPO=https://github.com/Dark-Vex/bareos
-ARG BAREOS_PKG_ASSET=bareos-24-noble.tar.gz
+ARG BAREOS_PKG_ASSET=bareos-23-jammy.tar.gz
 
 ADD ${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/${BAREOS_PKG_ASSET} /tmp/bareos-pkgs.tar.gz
 
