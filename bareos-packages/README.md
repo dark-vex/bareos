@@ -1,7 +1,7 @@
 # bareos-packages — Bareos .deb builder from source
 
-Builds Bareos `.deb` packages from the upstream [bareos/bareos](https://github.com/bareos/bareos)
-release branches for (Bareos version, Ubuntu codename) combinations that
+Builds Bareos `.deb` packages from upstream [bareos/bareos](https://github.com/bareos/bareos)
+release tags for (Bareos version, Ubuntu codename) combinations that
 `download.bareos.org` does not publish.
 
 ## Why
@@ -9,12 +9,12 @@ release branches for (Bareos version, Ubuntu codename) combinations that
 `download.bareos.org/current/` only serves the latest Bareos release (25.x as of 2026).
 Versioned repos exist only for Bareos 20 and 21. This builder covers the gap:
 
-| Bareos branch | Ubuntu codename | Published by upstream? |
-|---------------|-----------------|------------------------|
-| bareos-22     | jammy (22.04)   | no — build from source |
-| bareos-23     | jammy (22.04)   | no — build from source |
-| bareos-24     | noble (24.04)   | no — build from source |
-| bareos-25     | jammy / noble   | yes — `current/`       |
+| Artifact bucket | Upstream ref     | Ubuntu codename | Published by upstream? |
+|-----------------|------------------|-----------------|------------------------|
+| bareos-22       | Release/22.1.8   | jammy (22.04)   | no — build from source |
+| bareos-23       | Release/23.1.7   | jammy (22.04)   | no — build from source |
+| bareos-24       | Release/24.0.10  | noble (24.04)   | no — build from source |
+| bareos-25       | current          | jammy / noble   | yes — `current/`       |
 
 ## Build locally
 
@@ -27,6 +27,7 @@ mkdir -p ../artifacts
 docker run --rm \
   -v "$(pwd)/../artifacts:/artifacts" \
   -e BAREOS_BRANCH=bareos-22 \
+  -e BAREOS_REF=Release/22.1.8 \
   -e UBUNTU_CODENAME=jammy \
   bareos-builder:jammy
 
@@ -34,14 +35,14 @@ docker run --rm \
 ls ../artifacts/bareos-22/jammy/
 ```
 
-Replace `jammy` with `noble` and `bareos-22` with `bareos-24` for the noble variant.
+Replace `jammy`, `bareos-22`, and `Release/22.1.8` with the matching matrix values for other variants.
 
 ## CI / GitHub Actions
 
 Workflow: `.github/workflows/build-bareos-packages.yml`
 
 - **Manual trigger** (`workflow_dispatch`): builds all three matrix cells.
-- **Scheduled**: Sundays at 04:00 UTC to pick up upstream branch fixes.
+- **Scheduled**: Sundays at 04:00 UTC to rebuild the pinned upstream release tags.
 - **On push** to `bareos-packages/**`: rebuilds on builder file changes.
 
 Artifacts are uploaded (30-day retention) as `debs-<branch>-<codename>`.
