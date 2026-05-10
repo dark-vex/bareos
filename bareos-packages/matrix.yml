@@ -1,8 +1,11 @@
-# Build matrix: (bareos_branch, ubuntu_codename) tuples
+# Build matrix: (bareos_branch, bareos_ref, ubuntu_codename) tuples
 #
-# bareos-22 / jammy  — Bareos 22.x on Ubuntu 22.04 (upstream apt has none)
-# bareos-23 / jammy  — Bareos 23.x on Ubuntu 22.04 (upstream apt has none)
-# bareos-24 / noble  — Bareos 24.x on Ubuntu 24.04 (upstream only has 25.x)
+# bareos_branch is the artifact bucket.
+# bareos_ref is the stable upstream Release tag to build from.
+#
+# bareos-22 / Release/22.1.8 / jammy   — Bareos 22.x on Ubuntu 22.04 (upstream apt has none)
+# bareos-23 / Release/23.1.7 / jammy   — Bareos 23.x on Ubuntu 22.04 (upstream apt has none)
+# bareos-24 / Release/24.0.10 / noble  — Bareos 24.x on Ubuntu 24.04 (upstream only has 25.x)
 #
 # Bareos 25 is served by download.bareos.org/current/ and does not need
 # a source build. bareos-20 and bareos-21 have upstream versioned repos.
@@ -11,8 +14,11 @@
 
 matrix:
   - bareos_branch: bareos-22
+    bareos_ref: Release/22.1.8
     ubuntu_codename: jammy
   - bareos_branch: bareos-23
+    bareos_ref: Release/23.1.7
     ubuntu_codename: jammy
   - bareos_branch: bareos-24
+    bareos_ref: Release/24.0.10
     ubuntu_codename: noble

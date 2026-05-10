@@ -18,10 +18,13 @@ jobs:
       matrix:
         include:
           - bareos_branch: bareos-22
+            bareos_ref: Release/22.1.8
             ubuntu_codename: jammy
           - bareos_branch: bareos-23
+            bareos_ref: Release/23.1.7
             ubuntu_codename: jammy
           - bareos_branch: bareos-24
+            bareos_ref: Release/24.0.10
             ubuntu_codename: noble
 
     steps:
@@ -38,6 +41,7 @@ jobs:
           docker run --rm \
             -v "${{ github.workspace }}/artifacts:/artifacts" \
             -e BAREOS_BRANCH=${{ matrix.bareos_branch }} \
+            -e BAREOS_REF=${{ matrix.bareos_ref }} \
             -e UBUNTU_CODENAME=${{ matrix.ubuntu_codename }} \
             bareos-builder:${{ matrix.ubuntu_codename }}
 
@@ -60,10 +64,13 @@ jobs:
       matrix:
         include:
           - bareos_branch: bareos-22
+            bareos_ref: Release/22.1.8
             ubuntu_codename: jammy
           - bareos_branch: bareos-23
+            bareos_ref: Release/23.1.7
             ubuntu_codename: jammy
           - bareos_branch: bareos-24
+            bareos_ref: Release/24.0.10
             ubuntu_codename: noble
 
     steps:

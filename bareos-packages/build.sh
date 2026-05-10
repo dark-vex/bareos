@@ -2,24 +2,29 @@
 set -euo pipefail
 
 BAREOS_BRANCH="${BAREOS_BRANCH:?BAREOS_BRANCH env var required (e.g. bareos-22)}"
+BAREOS_REF="${BAREOS_REF:-${BAREOS_BRANCH}}"
 UBUNTU_CODENAME="${UBUNTU_CODENAME:?UBUNTU_CODENAME env var required (e.g. jammy)}"
 ARTIFACTS_DIR="/artifacts/${BAREOS_BRANCH}/${UBUNTU_CODENAME}"
 
-echo "==> Cloning ${BAREOS_BRANCH} ..."
-git clone --depth 1 --branch "${BAREOS_BRANCH}" \
+echo "==> Cloning ${BAREOS_REF} ..."
+git clone --depth 1 --branch "${BAREOS_REF}" \
     https://github.com/bareos/bareos.git /src
 
 cd /src
 
 if [ ! -f debian/changelog ]; then
-    VERSION="${BAREOS_BRANCH#bareos-}.0.0~localsrc"
+    if [[ "${BAREOS_REF}" =~ ^Release/([0-9]+[.][0-9]+[.][0-9]+.*)$ ]]; then
+        VERSION="${BASH_REMATCH[1]}~localsrc"
+    else
+        VERSION="${BAREOS_BRANCH#bareos-}.0.0~localsrc"
+    fi
     echo "==> Generating debian/changelog (${VERSION}) ..."
     DEBEMAIL="builder@localhost" DEBFULLNAME="Local Builder" \
         dch --create --empty \
             --package bareos \
             --newversion "${VERSION}" \
             --distribution "${UBUNTU_CODENAME}" \
-            "Local build from source branch ${BAREOS_BRANCH}"
+            "Local build from source ref ${BAREOS_REF}"
 fi
 
 echo "==> Installing build dependencies ..."
