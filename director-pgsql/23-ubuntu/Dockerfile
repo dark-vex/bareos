@@ -20,7 +20,7 @@ ENV BAREOS_DPKG_CONF="bareos-database-common bareos-database-common"
 
 ARG BAREOS_PKG_RELEASE=pkg%2Fbareos-packages-v1
 ARG BAREOS_PKG_REPO=https://github.com/Dark-Vex/bareos
-ARG BAREOS_PKG_ASSET=bareos-22-jammy.tar.gz
+ARG BAREOS_PKG_ASSET=bareos-23-jammy.tar.gz
 
 # hadolint ignore=DL3020
 ADD ${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/${BAREOS_PKG_ASSET} /tmp/bareos-pkgs.tar.gz
