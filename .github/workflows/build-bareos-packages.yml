@@ -75,7 +75,7 @@ jobs:
 
     steps:
       - name: Download packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: debs-${{ matrix.bareos_branch }}-${{ matrix.ubuntu_codename }}
           path: debs/
