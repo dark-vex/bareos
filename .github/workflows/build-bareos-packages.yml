@@ -49,7 +49,7 @@ jobs:
         run: ls -lh artifacts/${{ matrix.bareos_branch }}/${{ matrix.ubuntu_codename }}/
 
       - name: Upload packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: debs-${{ matrix.bareos_branch }}-${{ matrix.ubuntu_codename }}
           path: artifacts/${{ matrix.bareos_branch }}/${{ matrix.ubuntu_codename }}/
