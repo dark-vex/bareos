@@ -27,6 +27,10 @@ for file in $docker_files; do
   app_dir=$(echo "$file" |cut -d'/' -f1)
   version_dir=$(echo "$file" |cut -d'/' -f2)
   version=$(echo "$version_dir" |cut -d'-' -f1)
+  # Skip versions no longer available upstream
+  if [[ "$version" -le 21 ]]; then
+    continue
+  fi
   base_img=$(echo "$version_dir" |cut -d'-' -f2)
   [[ $version -ge 20 ]] && default_backend='pgsql'
 
