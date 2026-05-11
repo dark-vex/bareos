@@ -17,6 +17,7 @@ echo ::endgroup::
 
 # Build from app_build.txt
 echo ::group::Build Bareos
+HAS_ERROR=0
 while read app version arch app_path ; do
   tag="${version}"
   re='^[0-9]+-alpine.*$'
@@ -32,12 +33,13 @@ while read app version arch app_path ; do
     --build-arg VCS_REF=$(git rev-parse --short HEAD) \
     --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
     --build-arg NAME="${GITHUB_REPOSITORY}-${app}" \
-    --output "type=docker,dest=${workdir}/bareos-${app}-${tag}.tar,name=${INPUT_REGISTRY}/${GITHUB_REPOSITORY}-${app}:${tag}" \
+    --output "type=docker,dest=${workdir}/bareos-${app}-${tag}.tar,name=${INPUT_REGISTRY:+${INPUT_REGISTRY}/}${GITHUB_REPOSITORY}-${app}:${tag}" \
     "${app_path}"
 
   if [[ $? -ne 0 ]] ; then
     echo "::error:: ERROR-build: failed ${GITHUB_REPOSITORY}-${app}:${tag} in ${app_path}"
     rm -f "${workdir}/bareos-${app}-${tag}.tar"
+    HAS_ERROR=1
   fi
 
 done < "${workdir}/app_build.txt"
@@ -46,6 +48,9 @@ echo ::endgroup::
 # Clean & fix perm
 echo ::group::Clean
 docker buildx rm
+if [[ $HAS_ERROR -ne 0 ]]; then
+  exit 1
+fi
 find "${workdir}" -name 'bareos-*.tar' -exec chmod 755 {} +
 echo ::endgroup::
 
