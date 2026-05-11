@@ -12,6 +12,10 @@ registry="${INPUT_REGISTRY#https://}"
 registry="${registry#http://}"
 registry="${registry%/}"
 
+echo "DEBUG raw INPUT_REGISTRY=[${INPUT_REGISTRY}]"
+echo "DEBUG normalized registry=[${registry}]"
+echo "DEBUG GITHUB_REPOSITORY=[${GITHUB_REPOSITORY}]"
+
 # Load Dockerfiles
 echo ::group::Load Dockerfile
 echo "${docker_files}"
