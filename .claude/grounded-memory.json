@@ -1,0 +1,356 @@
+{
+  "version": 2,
+  "loopPatterns": {
+    "54631323": {
+      "preview": "Bash({\"command\":\"gh api repos/dark-vex/bareos/pulls/30/comments -)",
+      "count": 1,
+      "lastSeen": 1778428262049
+    },
+    "9a9ac6fc": {
+      "preview": "Bash({\"command\":\"git describe --tags --exact-match --match 'Relea)",
+      "count": 1,
+      "lastSeen": 1778412583462
+    },
+    "a8b9929": {
+      "preview": "Bash({\"command\":\"git switch -c bareos-packages-release-tags\"})",
+      "count": 1,
+      "lastSeen": 1778412863965
+    },
+    "57dd0bfa": {
+      "preview": "Bash({\"command\":\"git branch --show-current\"})",
+      "count": 1,
+      "lastSeen": 1778412868536
+    },
+    "f0e5ca31": {
+      "preview": "Bash({\"command\":\"git status --short\"})",
+      "count": 5,
+      "lastSeen": 1778427269021
+    },
+    "8cf505fe": {
+      "preview": "Bash({\"command\":\"git status --short && git branch --show-current\")",
+      "count": 1,
+      "lastSeen": 1778415437177
+    },
+    "767f3f23": {
+      "preview": "Bash({\"command\":\"gh api 'repos/peter-evans/dockerhub-description/)",
+      "count": 1,
+      "lastSeen": 1778415688573
+    },
+    "5474c59c": {
+      "preview": "Bash({\"command\":\"git switch -c fix-push-readme-dockerhub-v5\"})",
+      "count": 1,
+      "lastSeen": 1778415717876
+    },
+    "d27e49": {
+      "preview": "apply_patch({\"command\":\"*** Begin Patch\\n*** Update File: .github/workfl)",
+      "count": 1,
+      "lastSeen": 1778415722818
+    },
+    "83d32aa7": {
+      "preview": "Bash({\"command\":\"git status --short --branch\"})",
+      "count": 6,
+      "lastSeen": 1778428387039
+    },
+    "924b0260": {
+      "preview": "Bash({\"command\":\"git diff -- .github/workflows/push-readme.yml\"})",
+      "count": 2,
+      "lastSeen": 1778415891927
+    },
+    "ab3e85cf": {
+      "preview": "Bash({\"command\":\"ruby -e \\\"require 'yaml'; YAML.load_file('.githu)",
+      "count": 2,
+      "lastSeen": 1778415891969
+    },
+    "d736dc89": {
+      "preview": "apply_patch({\"command\":\"*** Begin Patch\\n*** Update File: .github/workfl)",
+      "count": 1,
+      "lastSeen": 1778415887514
+    },
+    "d62d2479": {
+      "preview": "Bash({\"command\":\"git status --short --branch && sed -n '1,80p' .g)",
+      "count": 1,
+      "lastSeen": 1778416235176
+    },
+    "36b5846e": {
+      "preview": "Bash({\"command\":\"gh run view 25628736598 --repo dark-vex/bareos -)",
+      "count": 1,
+      "lastSeen": 1778416241824
+    },
+    "1bf6bf93": {
+      "preview": "Bash({\"command\":\"gh api 'repos/peter-evans/dockerhub-description/)",
+      "count": 1,
+      "lastSeen": 1778416254690
+    },
+    "eeac7223": {
+      "preview": "Bash({\"command\":\"gh api repos/Dark-Vex/bareos/actions/runs/256315)",
+      "count": 1,
+      "lastSeen": 1778425756629
+    },
+    "a37d0fe2": {
+      "preview": "Bash({\"command\":\"gh api repos/Dark-Vex/bareos/releases/tags/pkg/b)",
+      "count": 1,
+      "lastSeen": 1778425762459
+    },
+    "12406c43": {
+      "preview": "Bash({\"command\":\"docker build --no-cache -t test-bareos-client:23)",
+      "count": 2,
+      "lastSeen": 1778426197120
+    },
+    "a3832968": {
+      "preview": "apply_patch({\"command\":\"*** Begin Patch\\n*** Update File: /Users/daniele)",
+      "count": 1,
+      "lastSeen": 1778426182059
+    },
+    "b32edde3": {
+      "preview": "Bash({\"command\":\"docker run --rm -v /private/tmp/debs-bareos-23-j)",
+      "count": 1,
+      "lastSeen": 1778426429009
+    },
+    "3600123f": {
+      "preview": "apply_patch({\"command\":\"*** Begin Patch\\n*** Update File: /Users/daniele)",
+      "count": 1,
+      "lastSeen": 1778426443215
+    },
+    "de822961": {
+      "preview": "Bash({\"command\":\"docker build --platform linux/amd64 --no-cache -)",
+      "count": 1,
+      "lastSeen": 1778426482383
+    },
+    "c59f0794": {
+      "preview": "Bash({\"command\":\"docker run --rm test-bareos-client:23-ubuntu dpk)",
+      "count": 2,
+      "lastSeen": 1778426524935
+    },
+    "b6a65f2b": {
+      "preview": "Bash({\"command\":\"docker build --platform linux/amd64 --no-cache -)",
+      "count": 1,
+      "lastSeen": 1778426556599
+    },
+    "f4ecbe12": {
+      "preview": "Bash({\"command\":\"docker run --platform linux/amd64 --rm -e CI_TES)",
+      "count": 3,
+      "lastSeen": 1778426672102
+    },
+    "113be2b6": {
+      "preview": "Bash({\"command\":\"git diff --name-only\"})",
+      "count": 1,
+      "lastSeen": 1778426683126
+    },
+    "73c9b210": {
+      "preview": "Bash({\"command\":\"git diff --check\"})",
+      "count": 4,
+      "lastSeen": 1778427845047
+    },
+    "26b5348c": {
+      "preview": "Bash({\"command\":\"ls -l docker-compose.yml\"})",
+      "count": 1,
+      "lastSeen": 1778426694898
+    },
+    "9dba7053": {
+      "preview": "Bash({\"command\":\"sed -n '1,160p' .github/workflows/run-compose.ym)",
+      "count": 1,
+      "lastSeen": 1778426699125
+    },
+    "f0e27e1b": {
+      "preview": "Bash({\"command\":\"for d in director-pgsql/22-ubuntu director-pgsql)",
+      "count": 2,
+      "lastSeen": 1778426813025
+    },
+    "c210212c": {
+      "preview": "Bash({\"command\":\"sed -n '1,240p' README.md\"})",
+      "count": 1,
+      "lastSeen": 1778426817337
+    },
+    "175554a9": {
+      "preview": "apply_patch({\"command\":\"*** Begin Patch\\n*** Update File: /Users/daniele)",
+      "count": 1,
+      "lastSeen": 1778426822746
+    },
+    "240b3547": {
+      "preview": "Bash({\"command\":\"gh api repos/Dark-Vex/bareos/releases/tags/pkg/b)",
+      "count": 1,
+      "lastSeen": 1778426828904
+    },
+    "646c6649": {
+      "preview": "Bash({\"command\":\"docker build --platform linux/amd64 --no-cache -)",
+      "count": 1,
+      "lastSeen": 1778426848186
+    },
+    "d12fe4a3": {
+      "preview": "Bash({\"command\":\"docker build --platform linux/amd64 --no-cache -)",
+      "count": 1,
+      "lastSeen": 1778426915895
+    },
+    "3d784b88": {
+      "preview": "Bash({\"command\":\"docker run --platform linux/amd64 --rm test-bare)",
+      "count": 2,
+      "lastSeen": 1778426956424
+    },
+    "ccd46768": {
+      "preview": "Bash({\"command\":\"docker run --platform linux/amd64 --rm test-bare)",
+      "count": 1,
+      "lastSeen": 1778426979577
+    },
+    "c1cab41": {
+      "preview": "Bash({\"command\":\"docker build --platform linux/amd64 --no-cache -)",
+      "count": 1,
+      "lastSeen": 1778427007031
+    },
+    "96bbecb7": {
+      "preview": "Bash({\"command\":\"docker run --platform linux/amd64 --rm test-bare)",
+      "count": 2,
+      "lastSeen": 1778427261288
+    },
+    "303559e2": {
+      "preview": "Bash({\"command\":\"git diff --stat\"})",
+      "count": 1,
+      "lastSeen": 1778427269015
+    },
+    "68961a27": {
+      "preview": "Bash({\"command\":\"find client/23-ubuntu director-pgsql/23-ubuntu s)",
+      "count": 1,
+      "lastSeen": 1778427275369
+    },
+    "b19de9da": {
+      "preview": "Bash({\"command\":\"git rev-parse HEAD\"})",
+      "count": 1,
+      "lastSeen": 1778427380583
+    },
+    "ff3833ea": {
+      "preview": "Bash({\"command\":\"git ls-remote origin refs/heads/master\"})",
+      "count": 1,
+      "lastSeen": 1778427386096
+    },
+    "9b35f410": {
+      "preview": "Bash({\"command\":\"git switch -c chore/update-readme-and-releases\"})",
+      "count": 2,
+      "lastSeen": 1778427418202
+    },
+    "be1dc36c": {
+      "preview": "Bash({\"command\":\"gh run view 25632771395 --repo dark-vex/bareos -)",
+      "count": 1,
+      "lastSeen": 1778427660211
+    },
+    "661a0e64": {
+      "preview": "Bash({\"command\":\"sed -n '1,120p' .github/workflows/test-n-lint.ym)",
+      "count": 1,
+      "lastSeen": 1778427670418
+    },
+    "288e3c1a": {
+      "preview": "Bash({\"command\":\"rg -n '^ADD \\\\$\\\\{BAREOS_PKG_REPO\\\\}' director-p)",
+      "count": 1,
+      "lastSeen": 1778427670423
+    },
+    "b01e0778": {
+      "preview": "apply_patch({\"command\":\"*** Begin Patch\\n*** Update File: /Users/daniele)",
+      "count": 1,
+      "lastSeen": 1778427695183
+    },
+    "ebd0dfdf": {
+      "preview": "Bash({\"command\":\"if [ ! -x /private/tmp/hadolint ]; then curl -fs)",
+      "count": 2,
+      "lastSeen": 1778427719033
+    },
+    "f9d3c069": {
+      "preview": "Bash({\"command\":\"docker run --rm -v /Users/daniele/git-sources/da)",
+      "count": 1,
+      "lastSeen": 1778427733452
+    },
+    "350d605": {
+      "preview": "Bash({\"command\":\"docker run --rm --entrypoint sh -v /Users/daniel)",
+      "count": 1,
+      "lastSeen": 1778427748596
+    },
+    "1558c1fd": {
+      "preview": "Bash({\"command\":\"for file in $(find . -name Dockerfile); do docke)",
+      "count": 1,
+      "lastSeen": 1778427768251
+    },
+    "f3849218": {
+      "preview": "Bash({\"command\":\"sed -n '1,220p' /Users/daniele/.agents/skills/ad)",
+      "count": 1,
+      "lastSeen": 1778427790217
+    },
+    "5d3b1e35": {
+      "preview": "Bash({\"command\":\"gh pr view 30 --repo dark-vex/bareos --json numb)",
+      "count": 1,
+      "lastSeen": 1778427790280
+    },
+    "b1ee95ee": {
+      "preview": "Bash({\"command\":\"gh api repos/dark-vex/bareos/issues/30/comments )",
+      "count": 1,
+      "lastSeen": 1778427790597
+    },
+    "36e2610f": {
+      "preview": "Bash({\"command\":\"git add client/22-ubuntu/Dockerfile client/23-ub)",
+      "count": 2,
+      "lastSeen": 1778428094224
+    },
+    "120f139d": {
+      "preview": "Bash({\"command\":\"git push\"})",
+      "count": 1,
+      "lastSeen": 1778428106348
+    },
+    "31aee666": {
+      "preview": "Bash({\"command\":\"for id in 3215087179 3215087181 3215087184 32150)",
+      "count": 2,
+      "lastSeen": 1778428149354
+    },
+    "6acaa70f": {
+      "preview": "Bash({\"command\":\"gh api repos/dark-vex/bareos/pulls/comments/3215)",
+      "count": 1,
+      "lastSeen": 1778428156505
+    },
+    "b516930f": {
+      "preview": "Bash({\"command\":\"gh api repos/Dark-Vex/bareos/pulls/comments/3215)",
+      "count": 1,
+      "lastSeen": 1778428163050
+    },
+    "1dad2f26": {
+      "preview": "Bash({\"command\":\"gh api repos/dark-vex/bareos/pulls/30/comments -)",
+      "count": 1,
+      "lastSeen": 1778428168854
+    },
+    "b16ec5c4": {
+      "preview": "Bash({\"command\":\"for id in 3215099087 3215099090 3215099093 32150)",
+      "count": 1,
+      "lastSeen": 1778428183513
+    },
+    "97e01e6": {
+      "preview": "Bash({\"command\":\"gh pr view 30 --repo dark-vex/bareos --json stat)",
+      "count": 2,
+      "lastSeen": 1778428208240
+    },
+    "29bd84a8": {
+      "preview": "Bash({\"command\":\"gh api repos/dark-vex/bareos/pulls/30/comments -)",
+      "count": 1,
+      "lastSeen": 1778428194817
+    },
+    "dfdf95bb": {
+      "preview": "Bash({\"command\":\"sleep 15 && gh api repos/dark-vex/bareos/pulls/3)",
+      "count": 1,
+      "lastSeen": 1778428254057
+    },
+    "a4976df0": {
+      "preview": "Bash({\"command\":\"gh api repos/dark-vex/bareos/pulls/30/comments -)",
+      "count": 1,
+      "lastSeen": 1778428269617
+    },
+    "8566e92f": {
+      "preview": "Bash({\"command\":\"gh api repos/dark-vex/bareos/pulls/30/comments -)",
+      "count": 1,
+      "lastSeen": 1778428277752
+    },
+    "af658ad1": {
+      "preview": "Bash({\"command\":\"for id in 3215100687 3215100689 3215100690 32151)",
+      "count": 1,
+      "lastSeen": 1778428364603
+    },
+    "f6fed8d4": {
+      "preview": "Bash({\"command\":\"gh pr view 30 --repo dark-vex/bareos --json stat)",
+      "count": 1,
+      "lastSeen": 1778428383003
+    }
+  },
+  "editErrors": {}
+}

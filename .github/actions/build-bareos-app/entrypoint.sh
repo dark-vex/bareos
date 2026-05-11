@@ -3,11 +3,6 @@
 workdir="${GITHUB_WORKSPACE}/build"
 export DOCKER_CLI_EXPERIMENTAL="enabled"
 
-# Strip any http/https scheme prefix so the value is a bare hostname:port
-registry="${INPUT_REGISTRY#https://}"
-registry="${registry#http://}"
-registry="${registry%/}"   # also strip any trailing slash
-
 # Load buildx binary
 echo ::group::Load Buildx
 mkdir -vp ~/.docker/cli-plugins/ ~/dockercache
@@ -38,7 +33,8 @@ while read app version arch app_path ; do
     --build-arg VCS_REF=$(git rev-parse --short HEAD) \
     --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
     --build-arg NAME="${GITHUB_REPOSITORY}-${app}" \
-    --output "type=docker,dest=${workdir}/bareos-${app}-${tag}.tar,name=${registry:+${registry}/}${GITHUB_REPOSITORY}-${app}:${tag}" \
+    --tag "bareos-${app}:${tag}" \
+    --output "type=docker,dest=${workdir}/bareos-${app}-${tag}.tar" \
     "${app_path}"
 
   if [[ $? -ne 0 ]] ; then
