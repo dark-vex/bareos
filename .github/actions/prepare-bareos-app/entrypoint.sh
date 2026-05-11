@@ -15,6 +15,8 @@ echo "${docker_files}"
 echo ::endgroup::
 
 mkdir -p "${GITHUB_WORKSPACE}/build"
+touch "$build_file"
+touch "$tag_file"
 
 echo ::group::'Build apps & tags list'
 for file in $docker_files; do

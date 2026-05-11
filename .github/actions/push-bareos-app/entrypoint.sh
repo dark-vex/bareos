@@ -2,6 +2,7 @@
 
 workdir="${GITHUB_WORKSPACE}/build"
 docker_files=$(find "${workdir}/" -name "bareos-*.tar" 2>/dev/null)
+rm_tag=""
 
 # Enable experimental feature in Docker
 export DOCKER_CLI_EXPERIMENTAL="enabled"
@@ -54,8 +55,10 @@ echo ::endgroup::
 
 # Clean Alpine build_tag (amd/arm)
 echo ::group::Clean
-docker run --rm lumir/remove-dockerhub-tag \
-  --user "${GITHUB_ACTOR}" --password ${INPUT_DOCKER_PASS} ${rm_tag}
+if [[ -n "${rm_tag}" ]]; then
+  docker run --rm lumir/remove-dockerhub-tag \
+    --user "${GITHUB_ACTOR}" --password ${INPUT_DOCKER_PASS} ${rm_tag}
+fi
 echo ::endgroup::
 
 #EOF

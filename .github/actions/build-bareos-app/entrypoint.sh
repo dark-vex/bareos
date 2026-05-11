@@ -46,7 +46,7 @@ echo ::endgroup::
 # Clean & fix perm
 echo ::group::Clean
 docker buildx rm
-chmod 755 "${workdir}"/bareos-*.tar
+find "${workdir}" -name 'bareos-*.tar' -exec chmod 755 {} +
 echo ::endgroup::
 
 #EOF
