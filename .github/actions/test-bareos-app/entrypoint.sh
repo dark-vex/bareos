@@ -14,6 +14,7 @@ echo ::endgroup::
 
 # Test images
 echo ::group::Test build tags
+HAS_ERROR=0
 while read app version arch path ; do
   # If nightly image, don't test
   re_nightly='^nightly-.*$'
@@ -50,12 +51,13 @@ while read app version arch path ; do
   # Check if Dockerfile exist
   if [[ ! -f ${workdir}/bareos-${app}-${build_tag}.tar ]] ; then
     echo ::error::"ERROR-test: $workdir/bareos-${app}-${build_tag}.tar not found"
+    HAS_ERROR=1
     continue
   fi
 
   # Run docker and check version
   img_version=$(docker run -t --rm ${ARGS} \
-    "${INPUT_REGISTRY}/${GITHUB_REPOSITORY}-${app}:${build_tag}" \
+    "bareos-${app}:${build_tag}" \
     "${CMD[@]}" | tail -1)
 
   if [[ $version =~ $re_alpine ]] ; then
@@ -73,12 +75,16 @@ while read app version arch path ; do
 
   if (( short_img_version != short_version )) ; then
     echo ::error::"ERROR-test: ${app}:${build_tag} is ${short_img_version}"
-    exit 1
+    HAS_ERROR=1
   else
     echo "OK: ${app}:${build_tag} is Bareos v${short_img_version}"
   fi
 
 done < "${workdir}/app_build.txt"
 echo ::endgroup::
+
+if [[ $HAS_ERROR -ne 0 ]]; then
+  exit 1
+fi
 
 #EOF
