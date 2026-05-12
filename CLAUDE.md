@@ -88,6 +88,8 @@ See `.env.dist` for all required variables. The most important ones for the Dire
 
 This repo is a fork. **Always push branches and open PRs against the fork (`origin`), never against the upstream repository.** When using `gh` commands, always pass `--repo` to target the fork explicitly.
 
+**Never bypass branch protection.** Do not push directly to `master` — always use a branch and open a PR. Never use `--force`, `--force-with-lease` on `master`, or any flag that bypasses protection rules.
+
 ## CI/CD
 
 GitHub Actions workflows in `.github/workflows/`:
