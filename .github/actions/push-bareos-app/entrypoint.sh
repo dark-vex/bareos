@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -x
 
 workdir="${GITHUB_WORKSPACE}/build"
 docker_files=$(find "${workdir}/" -name "bareos-*.tar" 2>/dev/null)
@@ -36,14 +37,16 @@ while read line ; do
   version=$(echo $line|awk '{print $2}')
   arch=$(echo $line|awk '{print $3}')
   build_tag=${version}
+  img_prefix="${INPUT_IMAGE_PREFIX:-${registry}/${GITHUB_REPOSITORY}}"
   re='^[0-9]+-alpine.*$'
   if [[ $version =~ $re ]] ; then
     build_tag="${version}-${arch}"
-    rm_tag="$rm_tag ${registry}/${GITHUB_REPOSITORY}-${app}:${build_tag}"
+    rm_tag="$rm_tag ${img_prefix}-${app}:${build_tag}"
   fi
   # Re-tag local image with registry-qualified name then push
   local_name="bareos-${app}:${build_tag}"
-  remote_name="${registry}/${GITHUB_REPOSITORY}-${app}:${build_tag}"
+  remote_name="${img_prefix}-${app}:${build_tag}"
+  printf 'DEBUG: docker tag %q %q\n' "${local_name}" "${remote_name}"
   docker tag "${local_name}" "${remote_name}"
   docker push "${remote_name}"
 done < "${workdir}/app_build.txt"
@@ -51,18 +54,20 @@ echo ::endgroup::
 
 echo ::group::Push additional tags
 while read build_app s_tag t_tag ; do
+  img_prefix="${INPUT_IMAGE_PREFIX:-${registry}/${GITHUB_REPOSITORY}}"
   # Push additional tags for Ubuntu
   if [[ $s_tag =~ ^[a-z0-9]+-ubuntu.*$ ]]; then
-    docker tag "${registry}/${GITHUB_REPOSITORY}-${build_app}:${s_tag}" \
-      "${registry}/${GITHUB_REPOSITORY}-${build_app}:${t_tag}"
-    docker push "${registry}/${GITHUB_REPOSITORY}-${build_app}:${t_tag}"
+    printf 'DEBUG: docker tag %q %q\n' "${img_prefix}-${build_app}:${s_tag}" "${img_prefix}-${build_app}:${t_tag}"
+    docker tag "${img_prefix}-${build_app}:${s_tag}" \
+      "${img_prefix}-${build_app}:${t_tag}"
+    docker push "${img_prefix}-${build_app}:${t_tag}"
   fi
   # Create and push manifest for Alpine (arm64 + amd64)
   if [[ $s_tag =~ ^[a-z0-9]+-alpine.*$ ]]; then
-    docker manifest create "${registry}/${GITHUB_REPOSITORY}-${build_app}:${t_tag}" \
-      "${registry}/${GITHUB_REPOSITORY}-${build_app}:${s_tag}-amd64" \
-      "${registry}/${GITHUB_REPOSITORY}-${build_app}:${s_tag}-arm64"
-    docker manifest push "${registry}/${GITHUB_REPOSITORY}-${build_app}:${t_tag}"
+    docker manifest create "${img_prefix}-${build_app}:${t_tag}" \
+      "${img_prefix}-${build_app}:${s_tag}-amd64" \
+      "${img_prefix}-${build_app}:${s_tag}-arm64"
+    docker manifest push "${img_prefix}-${build_app}:${t_tag}"
   fi
 done < "${workdir}/tag_build.txt"
 echo ::endgroup::
