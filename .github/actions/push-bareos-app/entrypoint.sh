@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -x
 
 workdir="${GITHUB_WORKSPACE}/build"
 docker_files=$(find "${workdir}/" -name "bareos-*.tar" 2>/dev/null)
@@ -13,11 +12,6 @@ registry="${INPUT_REGISTRY#https://}"
 registry="${registry#http://}"
 registry="${registry%/}"
 registry="${registry%%[[:space:]]}"
-
-printf 'DEBUG registry bytes: %q\n' "${registry}"
-echo "DEBUG raw INPUT_REGISTRY=[${INPUT_REGISTRY}]"
-echo "DEBUG normalized registry=[${registry}]"
-echo "DEBUG GITHUB_REPOSITORY=[${GITHUB_REPOSITORY}]"
 
 # Load Dockerfiles
 echo ::group::Load Dockerfile
@@ -46,7 +40,6 @@ while read line ; do
   # Re-tag local image with registry-qualified name then push
   local_name="bareos-${app}:${build_tag}"
   remote_name="${img_prefix}-${app}:${build_tag}"
-  printf 'DEBUG: docker tag %q %q\n' "${local_name}" "${remote_name}"
   docker tag "${local_name}" "${remote_name}"
   docker push "${remote_name}"
 done < "${workdir}/app_build.txt"
@@ -57,7 +50,6 @@ while read build_app s_tag t_tag ; do
   img_prefix="${INPUT_IMAGE_PREFIX:-${registry}/${GITHUB_REPOSITORY}}"
   # Push additional tags for Ubuntu
   if [[ $s_tag =~ ^[a-z0-9]+-ubuntu.*$ ]]; then
-    printf 'DEBUG: docker tag %q %q\n' "${img_prefix}-${build_app}:${s_tag}" "${img_prefix}-${build_app}:${t_tag}"
     docker tag "${img_prefix}-${build_app}:${s_tag}" \
       "${img_prefix}-${build_app}:${t_tag}"
     docker push "${img_prefix}-${build_app}:${t_tag}"
