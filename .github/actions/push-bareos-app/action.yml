@@ -8,6 +8,9 @@ inputs:
   docker_user:
    description: 'Registry Username'
    required: true
+  image_prefix:
+    description: 'Full image name prefix (overrides registry/GITHUB_REPOSITORY). E.g. harbor.example.com/project/bareos'
+    required: false
   registry:
    description: 'Registry URL'
    required: false
