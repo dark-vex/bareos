@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 BUILDX_VER='v0.5.1'
-latest_ubuntu='24'
+latest_ubuntu='25'
 latest_alpine='22'
 latest_api='21'
 

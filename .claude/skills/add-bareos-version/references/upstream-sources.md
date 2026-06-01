@@ -1,6 +1,6 @@
 # Bareos Upstream Source Table
 
-Last verified: 2026-04-18
+Last verified: 2026-06-01
 
 ## Ubuntu repos
 
@@ -11,7 +11,7 @@ Last verified: 2026-04-18
 | 22 | ubuntu:jammy (22.04) | `http://download.bareos.org/current/xUbuntu_22.04/Release.key` | `http://download.bareos.org/current/xUbuntu_22.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-04) |
 | 23 | — | — | — | ✗ no versioned repo; current/ does not pin to 23 |
 | 24 | ubuntu:noble (24.04) | `http://download.bareos.org/current/xUbuntu_24.04/Release.key` | `http://download.bareos.org/current/xUbuntu_24.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-04) |
-| 25 | — | — | — | ✗ no versioned repo; current/ does not pin to 25 |
+| 25 | ubuntu:noble (24.04) | `http://download.bareos.org/current/xUbuntu_24.04/Release.key` | `http://download.bareos.org/current/xUbuntu_24.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-06); 25-ubuntu images built from this |
 
 **Note**: For v22+, `current/` always tracks the latest Bareos release. The directory name reflects Ubuntu version, not Bareos version.
 
@@ -59,10 +59,11 @@ curl -sL "https://pypi.org/simple/bareos-restapi/" | grep -Eo 'bareos.restapi-[0
 | director-pgsql | 22-ubuntu | ✓ | Ubuntu 22.04 + current/ |
 | director-pgsql | 24-alpine | ✗ | No Alpine package for Bareos 24 |
 | director-pgsql | 23-alpine/ubuntu | ✗ | No upstream source |
-| director-pgsql | 25-alpine/ubuntu | ✗ | No upstream source |
-| storage | same as director-pgsql | same | same |
-| client | same as director-pgsql | same | same |
-| webui | same as director-pgsql | same | same |
+| director-pgsql | 25-ubuntu | ✓ | Ubuntu 24.04 + current/ |
+| director-pgsql | 25-alpine | ✗ | No Alpine package for Bareos 25 |
+| storage | 25-ubuntu | ✓ | Ubuntu 24.04 + current/ |
+| client | 25-ubuntu | ✓ | Ubuntu 24.04 + current/ |
+| webui | 25-ubuntu | ✓ | Ubuntu 24.04 + current/ |
 | api | 20-alpine | ✗ | bareos-restapi<21 not on PyPI |
 | api | 23-alpine | ✗ | No upstream source |
 | api | 25-alpine | ✗ | No upstream source |

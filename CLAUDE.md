@@ -105,7 +105,7 @@ The CI uses reusable composite actions in `.github/actions/` (prepare, build, pu
 ## Version Support
 
 - Alpine images support `linux/amd64` and `linux/arm64/v8`
-- Current active versions: 22 (Ubuntu and Alpine), 24 (Ubuntu)
+- Current active versions: 22 (Ubuntu and Alpine), 24 (Ubuntu), 25 (Ubuntu)
 - MySQL backend was dropped in Bareos 21+; `director-mysql/` only goes up to version 20
 
 ### Upstream package availability
@@ -119,7 +119,7 @@ The CI uses reusable composite actions in `.github/actions/` (prepare, build, pu
 | 22             | `current/` (serves 25.x today) | Alpine 3.18       |
 | 23             | not published upstream          | not published     |
 | 24             | not published upstream          | not published     |
-| 25             | `current/` (latest)            | not published     |
+| 25             | `current/xUbuntu_24.04/`        | not published     |
 
 Use `bareos-packages/` to build `.deb` packages from source for versions 22–24.
 Once packages are published as GitHub Releases, use the `.claude/skills/add-bareos-version`
