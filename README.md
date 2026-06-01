@@ -27,7 +27,8 @@ Weekly image builds run from GitHub Actions. Alpine images are built for
 
 | backend | tags |
 |:--|:--|
-| PostgreSQL | `24-ubuntu-pgsql`, `24-ubuntu`, `24`, `ubuntu` |
+| PostgreSQL | `25-ubuntu-pgsql`, `25-ubuntu`, `25`, `ubuntu` |
+| PostgreSQL | `24-ubuntu-pgsql`, `24-ubuntu`, `24` |
 | PostgreSQL | `23-ubuntu-pgsql`, `23-ubuntu`, `23` |
 | PostgreSQL | `22-ubuntu-pgsql`, `22-ubuntu`, `22` |
 | PostgreSQL | `22-alpine-pgsql`, `22-alpine`, `alpine`, `latest` |
@@ -41,7 +42,8 @@ Weekly image builds run from GitHub Actions. Alpine images are built for
 
 | base | tags |
 |:--|:--|
-| Ubuntu 24.04 | `24-ubuntu`, `24`, `ubuntu` |
+| Ubuntu 24.04 | `25-ubuntu`, `25`, `ubuntu` |
+| Ubuntu 24.04 | `24-ubuntu`, `24` |
 | Ubuntu 22.04 | `23-ubuntu`, `23`, `22-ubuntu`, `22` |
 | Alpine 3.18 | `22-alpine`, `alpine`, `latest` |
 | Ubuntu 20.04 | `21-ubuntu`, `21`, `20-ubuntu`, `20` |
@@ -61,6 +63,7 @@ PyPI for those versions.
 
 | Bareos version | Ubuntu image | Alpine image | Notes |
 |:--|:--|:--|:--|
+| 25 | `25-ubuntu` on Ubuntu 24.04 | not available | Installed from `download.bareos.org/current/` |
 | 24 | `24-ubuntu` on Ubuntu 24.04 | not available | Installed from GitHub package release |
 | 23 | `23-ubuntu` on Ubuntu 22.04 | not available | Installed from GitHub package release |
 | 22 | `22-ubuntu` on Ubuntu 22.04 | `22-alpine` on Alpine 3.18 | Ubuntu uses GitHub package release |
