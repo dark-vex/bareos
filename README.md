@@ -74,6 +74,16 @@ Bareos removed the MySQL catalog backend in version 21. Use `director-mysql/*`
 only for Bareos 20 or older and migrate existing MySQL catalogs to PostgreSQL
 before upgrading past Bareos 20.
 
+Bareos 23 removed the `dbdriver` directive from the catalog resource. If you
+are upgrading from Bareos 22 or older, remove any `dbdriver = "postgresql"`
+line from `/etc/bareos/bareos-dir.d/catalog/MyCatalog.conf` before starting
+the Director. Leaving it in place causes a fatal config error:
+
+```
+bareos-dir: CONFIG ERROR at lib/parse_conf_state_machine.cc:161
+Config error: Keyword "dbdriver" not permitted in this resource.
+```
+
 ## Package Releases
 
 `download.bareos.org/current/` tracks the latest Bareos release and does not
