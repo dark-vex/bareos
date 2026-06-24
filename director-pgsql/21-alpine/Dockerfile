@@ -23,8 +23,7 @@ RUN tar czf /bareos-dir.tgz /etc/bareos
 RUN mkdir /run/bareos \
  && chown bareos /run/bareos
 
-COPY webhook-notify /usr/local/bin/webhook-notify
-RUN chmod u+x /usr/local/bin/webhook-notify
+COPY --chmod=755 webhook-notify /usr/local/bin/webhook-notify
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod u+x /docker-entrypoint.sh
