@@ -18,11 +18,11 @@ jobs:
         module: [client, director, storage, webui, api]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Update Docker Hub description
-        uses: peter-evans/dockerhub-description@v4.0.0
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USER }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASS }}
-          DOCKERHUB_REPOSITORY: ${{ secrets.REGISTRY_URL }}/bareos/bareos-${{ matrix.module }}
+        uses: peter-evans/dockerhub-description@v5.0.0
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+          repository: ${{ secrets.REGISTRY_URL }}-${{ matrix.module }}

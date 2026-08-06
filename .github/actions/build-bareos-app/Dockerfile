@@ -1,4 +1,4 @@
-FROM docker:stable
+FROM docker:27
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
