@@ -104,23 +104,45 @@ The CI uses reusable composite actions in `.github/actions/` (prepare, build, pu
 
 ## Version Support
 
-- Alpine images support `linux/amd64` and `linux/arm64/v8`
-- Current active versions: 22 (Ubuntu and Alpine), 24 (Ubuntu), 25 (Ubuntu)
+- Ubuntu images support `linux/amd64` only.
+- Alpine architecture coverage is **per Bareos version**, not blanket amd64+arm64:
+
+  | Bareos version | Alpine base | amd64 | arm64/v8 | arm/v7 |
+  |----------------|-------------|:-----:|:--------:|:------:|
+  | 25             | 3.24        | ✓     | ✓        | ✗      |
+  | 24             | 3.23        | ✓     | ✓        | ✗      |
+  | 23             | 3.21        | ✓     | ✓        | ✓      |
+  | 22             | 3.18        | ✓     | ✓        | ✗      |
+
+  amd64 (and arm/v7 for 23 only) install straight from Alpine's official
+  `community` repo. arm64/v8 for 23/24/25, and arm/v7 for none beyond 23,
+  install a package built by `bareos-alpine-packages/` — see its README before
+  changing this table. **arm/v7 for 24/25 is not just unbuilt, it's currently
+  blocked**: Release/24.0.7 and Release/25.0.3 both hit a real upstream bug
+  (`time_t`/`static_assert` mismatch in the filedaemon Python plugin on 32-bit
+  ARM, confirmed via real `abuild -r` spikes). Do not add it back without
+  re-verifying that bug is fixed upstream.
+- Current active versions: 22–25 (Ubuntu and Alpine)
 - MySQL backend was dropped in Bareos 21+; `director-mysql/` only goes up to version 20
 
 ### Upstream package availability
 
 `download.bareos.org` only publishes versioned repos for Bareos 20 and 21. For 22+:
 
-| Bareos version | Ubuntu                          | Alpine            |
-|----------------|---------------------------------|-------------------|
-| 20             | versioned apt repo              | Alpine 3.15       |
-| 21             | versioned apt repo              | Alpine 3.17       |
-| 22             | `current/` (serves 25.x today) | Alpine 3.18       |
-| 23             | not published upstream          | not published     |
-| 24             | not published upstream          | not published     |
-| 25             | `current/xUbuntu_24.04/`        | not published     |
+| Bareos version | Ubuntu                          | Alpine (amd64)     |
+|----------------|---------------------------------|---------------------|
+| 20             | versioned apt repo              | Alpine 3.15         |
+| 21             | versioned apt repo              | Alpine 3.17         |
+| 22             | `current/` (serves 25.x today) | Alpine 3.18 (22.0.3)|
+| 23             | not published upstream          | Alpine 3.21 (23.0.4)|
+| 24             | not published upstream          | Alpine 3.23 (24.0.7)|
+| 25             | `current/xUbuntu_24.04/`        | Alpine 3.24 (25.0.3)|
 
-Use `bareos-packages/` to build `.deb` packages from source for versions 22–24.
-Once packages are published as GitHub Releases, use the `.claude/skills/add-bareos-version`
-skill to generate new component directories that install from those artifacts.
+Use `bareos-packages/` to build `.deb` packages from source for Ubuntu versions
+22–24. Alpine's own `community/bareos` package tracks upstream releases and
+needs no source build for amd64 (or arm/v7 on 23, the only version upstream
+ships it for) — only the arm64/v8 gap (every version) needs
+`bareos-alpine-packages/`. Once packages are published as GitHub Releases, use
+the `.claude/skills/add-bareos-version`
+skill to generate new component directories that install from those artifacts —
+its `references/upstream-sources.md` has the authoritative, verified table.
