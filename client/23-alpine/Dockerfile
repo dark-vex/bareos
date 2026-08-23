@@ -24,7 +24,7 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 # Alpine 3.21's community repo ships bareos-23.0.4 for amd64 and armv7 directly.
 # aarch64 is not published upstream for this version; install our own
 # custom-built .apk (see bareos-alpine-packages/) for that arch instead.
-ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v1
+ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v2
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_ASSET=bareos-23-alpine3.21-aarch64.tar.gz
 

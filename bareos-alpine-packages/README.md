@@ -84,8 +84,8 @@ Tag the repo with `pkg/bareos-alpine-packages-vN` after a successful workflow ru
 GitHub Release:
 
 ```bash
-git tag pkg/bareos-alpine-packages-v1
-git push origin pkg/bareos-alpine-packages-v1
+git tag pkg/bareos-alpine-packages-v2
+git push origin pkg/bareos-alpine-packages-v2
 ```
 
 ## Consuming packages in component Dockerfiles
@@ -94,7 +94,7 @@ Once a release exists, component Dockerfiles install from it on `aarch64` only â
 (and, for bareos-23 only, armv7) install straight from Alpine's community repo:
 
 ```dockerfile
-ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v1
+ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v2
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_VER=25-alpine3.24
 

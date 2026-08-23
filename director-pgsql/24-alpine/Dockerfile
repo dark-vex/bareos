@@ -24,7 +24,7 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 # bareos-postgresql subpackage from Bareos 24 onward). armv7 and aarch64 are not
 # published upstream for this version; install our own custom-built .apk (see
 # bareos-alpine-packages/) for those arches instead.
-ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v1
+ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v2
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_VER=24-alpine3.23
 
