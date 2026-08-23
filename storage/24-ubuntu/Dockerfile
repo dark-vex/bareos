@@ -21,14 +21,13 @@ ARG BAREOS_PKG_RELEASE=pkg%2Fbareos-packages-v1
 ARG BAREOS_PKG_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_PKG_ASSET=bareos-24-noble.tar.gz
 
-# hadolint ignore=DL3020
-ADD ${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/${BAREOS_PKG_ASSET} /tmp/bareos-pkgs.tar.gz
-
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN mkdir -p /tmp/bareos-debs \
+RUN apt-get update -qq \
+ && apt-get install -qq -y --no-install-recommends ca-certificates curl \
+ && mkdir -p /tmp/bareos-debs \
+ && curl -fsSL "${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/${BAREOS_PKG_ASSET}" -o /tmp/bareos-pkgs.tar.gz \
  && tar -xzf /tmp/bareos-pkgs.tar.gz -C /tmp/bareos-debs \
- && apt-get update -qq \
  && apt-get install -qq -y --no-install-recommends \
     tzdata mtx scsitools sg3-utils mt-st \
     /tmp/bareos-debs/bareos-common_*.deb \
