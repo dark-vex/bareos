@@ -1,12 +1,12 @@
 ---
 name: add-bareos-version
-description: Add a new Bareos version directory (Dockerfile + docker-entrypoint.sh) for a given component and flavor (alpine|ubuntu). Delegates all code generation to the ollama-orchestrator subagent. Use when the user asks to add support for Bareos N-ubuntu or N-alpine, or fill missing version/flavor combos. Also use when the user types "add Bareos 22 ubuntu" or "generate missing Bareos versions".
-allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent]
+description: Add a new Bareos version directory (Dockerfile + docker-entrypoint.sh) for a given component and flavor (alpine|ubuntu). Use when the user asks to add support for Bareos N-ubuntu or N-alpine, or fill missing version/flavor combos. Also use when the user types "add Bareos 22 ubuntu" or "generate missing Bareos versions".
+allowed-tools: [Read, Write, Edit, Glob, Grep, Bash]
 ---
 
 # add-bareos-version skill
 
-Generates missing Bareos Docker image directories using the ollama-orchestrator subagent.
+Generates missing Bareos Docker image directories.
 
 ## Upstream source table
 
@@ -35,24 +35,18 @@ From `references/upstream-sources.md`:
 Find the nearest existing directory with the **same component** and **same flavor**:
 
 - Same component, closest version, same flavor (e.g. for client/22-ubuntu, reference is client/21-ubuntu)
-- Read its `Dockerfile` and `docker-entrypoint.sh` in full — pass this verbatim to the subagent
+- Read its `Dockerfile` and `docker-entrypoint.sh` in full — use these as the basis for the new files
 
-### 4. Invoke ollama-orchestrator
+### 4. Generate the Dockerfile and entrypoint
 
-Call `Agent(subagent_type: "ollama-orchestrator", prompt: <detailed prompt>)` with:
+Write the new `Dockerfile` and `docker-entrypoint.sh` directly, adapting the reference template with:
 
-- The reference Dockerfile and entrypoint verbatim (inside a code fence)
 - The target directory name (e.g. `client/22-ubuntu`)
 - The FROM change: e.g. `FROM ubuntu:jammy` (Ubuntu 22.04)
 - The BAREOS_KEY and BAREOS_REPO values from the upstream sources table
-- Any differences in how the gpg key is handled between v21 and v22+ style
-- A request for the complete Dockerfile and entrypoint, not a diff
-
-**Mandatory**: do not write Dockerfile or entrypoint bodies yourself. All content must come from ollama-orchestrator.
+- Any differences in how the gpg key is handled between v21 and v22+ style (see below)
 
 ### 5. Write files
-
-From the subagent's output, extract the Dockerfile and docker-entrypoint.sh, then:
 
 ```bash
 mkdir -p <component>/<version>-<flavor>
@@ -63,7 +57,7 @@ chmod +x <component>/<version>-<flavor>/docker-entrypoint.sh
 
 ### 6. Validate one representative build
 
-Run `docker build --check` (or `docker build --platform linux/amd64 --no-cache -t test-bareos:local .`) from inside the new directory. If it fails, inspect the error and run one correction round through ollama-orchestrator before giving up.
+Run `docker build --check` (or `docker build --platform linux/amd64 --no-cache -t test-bareos:local .`) from inside the new directory. If it fails, fix the Dockerfile/entrypoint directly and rebuild.
 
 Do not attempt to build all generated dirs in one pass — do one, verify, then continue.
 
@@ -76,4 +70,4 @@ State what was generated, which tuples were skipped (upstream not found), whethe
 - v20–21 (old style): `curl -Ls $BAREOS_KEY -o /tmp/bareos.key` then `apt-key add /tmp/bareos.key`
 - v22+ (new style): `curl -Ls $BAREOS_KEY | gpg --dearmor -o /usr/share/keyrings/bareos.gpg` then `[signed-by=/usr/share/keyrings/bareos.gpg]` in sources.list
 
-When generating v22-ubuntu, ensure the reference (v21-ubuntu old style) is adapted to the new gpg style shown in v24-ubuntu. Tell the subagent explicitly.
+When generating v22-ubuntu, ensure the reference (v21-ubuntu old style) is adapted to the new gpg style shown in v24-ubuntu.
