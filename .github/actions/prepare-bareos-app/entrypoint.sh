@@ -2,7 +2,7 @@
 
 BUILDX_VER='v0.5.1'
 latest_ubuntu='25'
-latest_alpine='22'
+latest_alpine='25'
 latest_api='21'
 
 build_file="${GITHUB_WORKSPACE}/build/app_build.txt"
@@ -76,8 +76,27 @@ for file in $docker_files; do
 
   if [ "${base_img}" == 'alpine' ]; then
     # Builds
+    #
+    # amd64 is always covered (either straight from Alpine's community repo, or
+    # from bareos-alpine-packages/ for versions it doesn't build for).
+    #
+    # arm64 (aarch64): Alpine's community repo covers it upstream only through
+    # version 22 (alpine:3.18); 23/24/25 install a custom-built .apk from
+    # bareos-alpine-packages/ instead (see its README) — either way, arm64 is
+    # buildable for every alpine version we ship.
+    #
+    # armv7: Alpine's community repo covers it upstream only for version 23
+    # (alpine:3.21). It does NOT cover 24 or 25, and a custom build is not an
+    # option there either — Release/24.0.7 and Release/25.0.3 both hit a real
+    # upstream bug (time_t/static_assert mismatch in the filedaemon Python
+    # plugin on 32-bit ARM, confirmed via actual abuild spikes 2026-08-22, see
+    # bareos-alpine-packages/README.md). Do not add armv7 for 24/25 here until
+    # that's resolved upstream.
     echo "${app} ${tag_build} amd64 ${app_dir}/${version_dir}" >> "$build_file"
     echo "${app} ${tag_build} arm64 ${app_dir}/${version_dir}" >> "$build_file"
+    if [ "${version}" == '23' ]; then
+      echo "${app} ${tag_build} armv7 ${app_dir}/${version_dir}" >> "$build_file"
+    fi
     # Tags
     echo "${app} ${tag_build} ${tag_build}" >> "$tag_file"
 

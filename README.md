@@ -2,7 +2,7 @@
 
 ![License badge][license-img]
 ![Based OS][os-based-ubuntu] ![Based OS][os-based-alpine]
-![Badge amd64][arch-amd64-img] ![Badge arm64][arch-arm64/v8-img]
+![Badge amd64][arch-amd64-img] ![Badge arm64][arch-arm64/v8-img] ![Badge armv7][arch-armv7-img]
 
 Container images for running [Bareos][bareos-href] components with Docker and
 Docker Compose.
@@ -17,9 +17,26 @@ Docker Compose.
 | Web UI | [![Actions Status][build-webui-img]][build-webui-href] | ![Size badge][size-latest-webui-png] | ![Size badge][size-alpine-webui-png] | [![Docker badge][docker-img-ui]][docker-url-ui] |
 | API | [![Actions Status][build-api-img]][build-api-href] | | ![Size badge][size-latest-api-png] | [![Docker badge][docker-img-api]][docker-url-api] |
 
-Weekly image builds run from GitHub Actions. Alpine images are built for
-`linux/amd64` and `linux/arm64/v8`; Ubuntu images are currently built for
-`linux/amd64`.
+Weekly image builds run from GitHub Actions. Ubuntu images are built for
+`linux/amd64` only. Alpine architecture coverage varies by Bareos version —
+`linux/amd64` is always available, `linux/arm64/v8` is available for every
+Alpine version, and `linux/arm/v7` is available for Bareos 23 only:
+
+| Bareos version | Alpine base | amd64 | arm64/v8 | arm/v7 |
+|:--|:--|:--:|:--:|:--:|
+| 25 | Alpine 3.24 | ✅ | ✅ | ❌ |
+| 24 | Alpine 3.23 | ✅ | ✅ | ❌ |
+| 23 | Alpine 3.21 | ✅ | ✅ | ✅ |
+| 22 | Alpine 3.18 | ✅ | ✅ | ❌ |
+| 21 and older | — | ✅ | — | — |
+
+amd64 and, for Bareos 23, arm/v7 install Bareos straight from Alpine's
+official `community` repository. arm64/v8 for Bareos 23/24/25 (and arm/v7 for
+Bareos 24/25, which Alpine's own repository does not publish at all) install a
+package built by this repo's `bareos-alpine-packages/` pipeline — Bareos 24
+and 25 hit a real upstream bug on 32-bit ARM that rules out arm/v7 for those
+two versions regardless of who builds the package; see
+`bareos-alpine-packages/README.md` for details.
 
 ## Supported Tags
 
@@ -31,7 +48,10 @@ Weekly image builds run from GitHub Actions. Alpine images are built for
 | PostgreSQL | `24-ubuntu-pgsql`, `24-ubuntu`, `24` |
 | PostgreSQL | `23-ubuntu-pgsql`, `23-ubuntu`, `23` |
 | PostgreSQL | `22-ubuntu-pgsql`, `22-ubuntu`, `22` |
-| PostgreSQL | `22-alpine-pgsql`, `22-alpine`, `alpine`, `latest` |
+| PostgreSQL | `25-alpine-pgsql`, `25-alpine`, `alpine`, `latest` |
+| PostgreSQL | `24-alpine-pgsql`, `24-alpine` |
+| PostgreSQL | `23-alpine-pgsql`, `23-alpine` |
+| PostgreSQL | `22-alpine-pgsql`, `22-alpine` |
 | PostgreSQL | `21-ubuntu-pgsql`, `21-ubuntu`, `21` |
 | PostgreSQL | `21-alpine-pgsql`, `21-alpine` |
 | PostgreSQL | `20-ubuntu-pgsql`, `20-ubuntu`, `20` |
@@ -45,7 +65,10 @@ Weekly image builds run from GitHub Actions. Alpine images are built for
 | Ubuntu 24.04 | `25-ubuntu`, `25`, `ubuntu` |
 | Ubuntu 24.04 | `24-ubuntu`, `24` |
 | Ubuntu 22.04 | `23-ubuntu`, `23`, `22-ubuntu`, `22` |
-| Alpine 3.18 | `22-alpine`, `alpine`, `latest` |
+| Alpine 3.24 | `25-alpine`, `alpine`, `latest` |
+| Alpine 3.23 | `24-alpine` |
+| Alpine 3.21 | `23-alpine` |
+| Alpine 3.18 | `22-alpine` |
 | Ubuntu 20.04 | `21-ubuntu`, `21`, `20-ubuntu`, `20` |
 | Alpine | `21-alpine`, `20-alpine` |
 
@@ -63,10 +86,10 @@ PyPI for those versions.
 
 | Bareos version | Ubuntu image | Alpine image | Notes |
 |:--|:--|:--|:--|
-| 25 | `25-ubuntu` on Ubuntu 24.04 | not available | Installed from `download.bareos.org/current/` |
-| 24 | `24-ubuntu` on Ubuntu 24.04 | not available | Installed from GitHub package release |
-| 23 | `23-ubuntu` on Ubuntu 22.04 | not available | Installed from GitHub package release |
-| 22 | `22-ubuntu` on Ubuntu 22.04 | `22-alpine` on Alpine 3.18 | Ubuntu uses GitHub package release |
+| 25 | `25-ubuntu` on Ubuntu 24.04 | `25-alpine` on Alpine 3.24 | Ubuntu from `download.bareos.org/current/`; Alpine amd64+arm64/v8 |
+| 24 | `24-ubuntu` on Ubuntu 24.04 | `24-alpine` on Alpine 3.23 | Ubuntu from GitHub package release; Alpine amd64+arm64/v8 |
+| 23 | `23-ubuntu` on Ubuntu 22.04 | `23-alpine` on Alpine 3.21 | Ubuntu from GitHub package release; Alpine amd64+arm64/v8+arm/v7 |
+| 22 | `22-ubuntu` on Ubuntu 22.04 | `22-alpine` on Alpine 3.18 | Ubuntu uses GitHub package release; Alpine amd64+arm64/v8 |
 | 21 | `21-ubuntu` | `21-alpine` | Upstream versioned repo / Alpine package |
 | 20 | `20-ubuntu` | `20-alpine` | Last version with MySQL backend |
 
@@ -222,6 +245,7 @@ build can download them.
 
 [arch-amd64-img]: https://img.shields.io/badge/arch-amd64-inactive
 [arch-arm64/v8-img]: https://img.shields.io/badge/arch-arm64/v8-inactive
+[arch-armv7-img]: https://img.shields.io/badge/arch-arm/v7-inactive
 [bareos-href]: https://www.bareos.org
 [bareos-doc]: https://www.bareos.com/learn/documentation
 [bareos-packages-readme]: https://github.com/Dark-Vex/bareos/blob/master/bareos-packages/README.md

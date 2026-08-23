@@ -1,0 +1,23 @@
+# Build matrix: (alpine_branch, bareos_version) pairs needing a custom-built aarch64 .apk.
+#
+# alpine_branch is the aports stable branch our builder base image and APKBUILD source
+# come from. bareos_version is the artifact bucket / Bareos major version it ships.
+#
+# Alpine's community/bareos package covers amd64 for all of these, and armv7 for
+# bareos_version 23 (3.21-stable) — those install straight from the official repo,
+# see the component Dockerfiles' TARGETARCH conditional. Only aarch64 needs a custom
+# build here, for all three versions.
+#
+# armv7 for bareos_version 24/25 is NOT listed here and must not be added: a real
+# upstream bug (time_t/static_assert mismatch in the filedaemon Python plugin on
+# 32-bit ARM, present in both Release/24.0.7 and Release/25.0.3) blocks it, confirmed
+# via actual abuild spikes on 2026-08-22. See references/upstream-sources.md in the
+# add-bareos-version skill for the full writeup before attempting to add it back.
+
+matrix:
+  - alpine_branch: 3.21-stable
+    bareos_version: 23
+  - alpine_branch: 3.23-stable
+    bareos_version: 24
+  - alpine_branch: 3.24-stable
+    bareos_version: 25
