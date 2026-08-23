@@ -1,0 +1,91 @@
+name: pilot-arm64-build-strategies
+
+# Benchmark only: compares the current QEMU-emulated arm64 build against a
+# native arm64 GitHub-hosted runner for one representative target
+# (client/24-ubuntu). Not a gate — workflow_dispatch only, never runs on
+# push/PR/schedule. Builds only; nothing here is pushed to a real tag.
+on:
+  workflow_dispatch:
+
+jobs:
+  qemu-baseline:
+    name: qemu-baseline (ubuntu-latest + QEMU)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+
+      - name: Create buildx builder
+        run: docker buildx create --use
+
+      - name: Build client/24-ubuntu for linux/arm64 (QEMU-emulated)
+        working-directory: client/24-ubuntu
+        run: |
+          start=$(date +%s)
+          docker buildx build \
+            --no-cache \
+            --platform linux/arm64 \
+            --build-arg VERSION=24 \
+            --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
+            --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+            --build-arg NAME="${GITHUB_REPOSITORY}-client" \
+            --tag bareos-client:pilot-test \
+            .
+          end=$(date +%s)
+          echo "BUILD_SECONDS=$((end - start))" >> "$GITHUB_ENV"
+
+      - name: Write timing summary
+        run: |
+          {
+            echo "### qemu-baseline (ubuntu-latest + QEMU)"
+            echo ""
+            echo "| target | platform | seconds |"
+            echo "|---|---|---|"
+            echo "| client/24-ubuntu | linux/arm64 (emulated) | ${BUILD_SECONDS} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  github-arm64-native:
+    name: github-arm64-native (ubuntu-24.04-arm)
+    # Confirm at implementation/dispatch time that ubuntu-24.04-arm is
+    # available in this org's runner rollout; fall back to
+    # ubuntu-22.04-arm if not. origin/dark-vex/bareos is public, so this
+    # runner family is free to use.
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Create buildx builder
+        run: docker buildx create --use
+
+      - name: Build client/24-ubuntu for linux/arm64 (native)
+        working-directory: client/24-ubuntu
+        run: |
+          start=$(date +%s)
+          docker buildx build \
+            --no-cache \
+            --platform linux/arm64 \
+            --build-arg VERSION=24 \
+            --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
+            --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+            --build-arg NAME="${GITHUB_REPOSITORY}-client" \
+            --tag bareos-client:pilot-test \
+            .
+          end=$(date +%s)
+          echo "BUILD_SECONDS=$((end - start))" >> "$GITHUB_ENV"
+
+      - name: Write timing summary
+        run: |
+          {
+            echo "### github-arm64-native (ubuntu-24.04-arm)"
+            echo ""
+            echo "| target | platform | seconds |"
+            echo "|---|---|---|"
+            echo "| client/24-ubuntu | linux/arm64 (native) | ${BUILD_SECONDS} |"
+          } >> "$GITHUB_STEP_SUMMARY"
