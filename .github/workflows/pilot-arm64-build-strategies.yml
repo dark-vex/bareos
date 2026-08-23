@@ -2,8 +2,12 @@ name: pilot-arm64-build-strategies
 
 # Benchmark only: compares the current QEMU-emulated arm64 build against a
 # native arm64 GitHub-hosted runner for one representative target
-# (client/24-ubuntu). Not a gate — workflow_dispatch only, never runs on
-# push/PR/schedule. Builds only; nothing here is pushed to a real tag.
+# (client/24-alpine — arm64/v8 is documented as supported for this version;
+# client/24-ubuntu was tried first but Ubuntu images are amd64-only in this
+# repo, so the deb tarball has no arm64 packages and both jobs failed
+# identically on "held broken packages" regardless of QEMU vs. native).
+# Not a gate — workflow_dispatch only, never runs on push/PR/schedule.
+# Builds only; nothing here is pushed to a real tag.
 on:
   workflow_dispatch:
 
@@ -24,14 +28,14 @@ jobs:
       - name: Create buildx builder
         run: docker buildx create --use
 
-      - name: Build client/24-ubuntu for linux/arm64 (QEMU-emulated)
-        working-directory: client/24-ubuntu
+      - name: Build client/24-alpine for linux/arm64 (QEMU-emulated)
+        working-directory: client/24-alpine
         run: |
           start=$(date +%s)
           docker buildx build \
             --no-cache \
             --platform linux/arm64 \
-            --build-arg VERSION=24 \
+            --build-arg VERSION=24-alpine \
             --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
             --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
             --build-arg NAME="${GITHUB_REPOSITORY}-client" \
@@ -47,7 +51,7 @@ jobs:
             echo ""
             echo "| target | platform | seconds |"
             echo "|---|---|---|"
-            echo "| client/24-ubuntu | linux/arm64 (emulated) | ${BUILD_SECONDS} |"
+            echo "| client/24-alpine | linux/arm64 (emulated) | ${BUILD_SECONDS} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
   github-arm64-native:
@@ -64,14 +68,14 @@ jobs:
       - name: Create buildx builder
         run: docker buildx create --use
 
-      - name: Build client/24-ubuntu for linux/arm64 (native)
-        working-directory: client/24-ubuntu
+      - name: Build client/24-alpine for linux/arm64 (native)
+        working-directory: client/24-alpine
         run: |
           start=$(date +%s)
           docker buildx build \
             --no-cache \
             --platform linux/arm64 \
-            --build-arg VERSION=24 \
+            --build-arg VERSION=24-alpine \
             --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
             --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
             --build-arg NAME="${GITHUB_REPOSITORY}-client" \
@@ -87,5 +91,5 @@ jobs:
             echo ""
             echo "| target | platform | seconds |"
             echo "|---|---|---|"
-            echo "| client/24-ubuntu | linux/arm64 (native) | ${BUILD_SECONDS} |"
+            echo "| client/24-alpine | linux/arm64 (native) | ${BUILD_SECONDS} |"
           } >> "$GITHUB_STEP_SUMMARY"
