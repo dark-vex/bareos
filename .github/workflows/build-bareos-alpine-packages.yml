@@ -97,8 +97,13 @@ jobs:
           BAREOS_VERSION: ${{ matrix.bareos_version }}
         run: |
           alpine_tag="${ALPINE_BRANCH%-stable}"
+          # upload-artifact's glob path preserves the source directory structure
+          # (apks/bareos-<ver>-alpine<tag>/aarch64/*.apk), but the component
+          # Dockerfiles expect a flat tarball of just the .apk files — flatten here.
+          mkdir -p flat
+          find apks/ -name '*.apk' -exec cp {} flat/ \;
           tar czf "bareos-${BAREOS_VERSION}-alpine${alpine_tag}-aarch64.tar.gz" \
-            -C apks/ .
+            -C flat/ .
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@v3
