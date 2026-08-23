@@ -15,8 +15,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Native aarch64 runner — no QEMU emulation needed. A pilot benchmark
+    # (pilot-alpine-packages-build-strategies.yml) measured this exact
+    # abuild compile at ~57 minutes under QEMU on ubuntu-latest vs. ~3.5
+    # minutes native here (~16.5x), matching bareos-alpine-packages/
+    # README.md's own estimate ("about a minute" native vs. "several
+    # minutes to ~1 hour" emulated).
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -32,11 +38,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Set up QEMU (aarch64 emulation)
-        uses: docker/setup-qemu-action@v4
-        with:
-          platforms: arm64
-
       - name: Build bareos-${{ matrix.bareos_version }} (alpine ${{ matrix.alpine_branch }}) aarch64 packages
         env:
           ALPINE_BRANCH: ${{ matrix.alpine_branch }}
@@ -44,13 +45,11 @@ jobs:
         run: |
           alpine_tag="${ALPINE_BRANCH%-stable}"
           docker build \
-            --platform linux/arm64 \
             -f bareos-alpine-packages/Dockerfile.builder.${alpine_tag} \
             -t bareos-alpine-builder:${alpine_tag} \
             bareos-alpine-packages/
           mkdir -p artifacts
           docker run --rm \
-            --platform linux/arm64 \
             -v "${{ github.workspace }}/artifacts:/artifacts" \
             -e ALPINE_BRANCH=${ALPINE_BRANCH} \
             -e BAREOS_VERSION=${BAREOS_VERSION} \
