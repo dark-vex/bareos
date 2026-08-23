@@ -54,12 +54,21 @@ while read build_app s_tag t_tag ; do
       "${img_prefix}-${build_app}:${t_tag}"
     docker push "${img_prefix}-${build_app}:${t_tag}"
   fi
-  # Create and push manifest for Alpine (arm64 + amd64)
+  # Create and push manifest for Alpine, from whichever per-arch tags were
+  # actually built for this version (see app_build.txt) — not every alpine
+  # version supports the same arch set (e.g. armv7 is only built for 23).
   if [[ $s_tag =~ ^[a-z0-9]+-alpine.*$ ]]; then
-    docker manifest create "${img_prefix}-${build_app}:${t_tag}" \
-      "${img_prefix}-${build_app}:${s_tag}-amd64" \
-      "${img_prefix}-${build_app}:${s_tag}-arm64"
-    docker manifest push "${img_prefix}-${build_app}:${t_tag}"
+    manifest_refs=""
+    for arch in $(awk -v app="${build_app}" -v tag="${s_tag}" \
+        '$1 == app && $2 == tag { print $3 }' "${workdir}/app_build.txt" | sort -u); do
+      manifest_refs="${manifest_refs} ${img_prefix}-${build_app}:${s_tag}-${arch}"
+    done
+    if [[ -z "${manifest_refs}" ]]; then
+      echo "::error:: no per-arch tags found in app_build.txt for ${build_app}:${s_tag}, skipping manifest"
+    else
+      docker manifest create "${img_prefix}-${build_app}:${t_tag}" ${manifest_refs}
+      docker manifest push "${img_prefix}-${build_app}:${t_tag}"
+    fi
   fi
 done < "${workdir}/tag_build.txt"
 echo ::endgroup::
