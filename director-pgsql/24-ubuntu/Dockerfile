@@ -22,12 +22,12 @@ ARG BAREOS_PKG_RELEASE=pkg%2Fbareos-packages-v1
 ARG BAREOS_PKG_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_PKG_ASSET=bareos-24-noble.tar.gz
 
-# hadolint ignore=DL3020
-ADD ${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/${BAREOS_PKG_ASSET} /tmp/bareos-pkgs.tar.gz
-
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-RUN mkdir -p /tmp/bareos-debs \
+RUN apt-get update -qq \
+ && apt-get install -qq -y --no-install-recommends ca-certificates curl \
+ && mkdir -p /tmp/bareos-debs \
+ && curl -fsSL "${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/${BAREOS_PKG_ASSET}" -o /tmp/bareos-pkgs.tar.gz \
  && tar -xzf /tmp/bareos-pkgs.tar.gz -C /tmp/bareos-debs \
  && echo "${BAREOS_DPKG_CONF}/dbconfig-install boolean false" \
     | debconf-set-selections \
@@ -39,9 +39,8 @@ RUN mkdir -p /tmp/bareos-debs \
     | debconf-set-selections \
  && echo 'postfix postfix/main_mailer_type select No configuration' \
     | debconf-set-selections \
- && apt-get update -qq \
  && apt-get install -qq -y --no-install-recommends \
-    curl tzdata postgresql-client \
+    tzdata postgresql-client \
     /tmp/bareos-debs/bareos-bconsole_*.deb \
     /tmp/bareos-debs/bareos-common_*.deb \
     /tmp/bareos-debs/bareos-director_*.deb \
