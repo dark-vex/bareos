@@ -71,6 +71,8 @@ jobs:
     needs: build
     if: startsWith(github.ref, 'refs/tags/pkg/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
