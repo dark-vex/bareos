@@ -67,14 +67,16 @@ jobs:
         run: docker buildx create --use
 
       - name: Log in to registry
+        env:
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+          DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
         run: |
-          registry="${{ secrets.REGISTRY_URL }}"
-          registry="${registry#https://}"
+          registry="${REGISTRY_URL#https://}"
           registry="${registry#http://}"
           registry="${registry%/}"
           echo "REGISTRY=${registry}" >> "$GITHUB_ENV"
-          echo "${{ secrets.DOCKER_PASS }}" | docker login "${registry}" \
-            -u "${{ secrets.DOCKER_USER }}" --password-stdin
+          docker login "${registry}" -u "${DOCKER_USER}" -p "${DOCKER_PASS}"
 
       - name: Build client/24-ubuntu with empty registry cache
         working-directory: client/24-ubuntu
@@ -115,14 +117,16 @@ jobs:
         run: docker buildx create --use
 
       - name: Log in to registry
+        env:
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+          DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
         run: |
-          registry="${{ secrets.REGISTRY_URL }}"
-          registry="${registry#https://}"
+          registry="${REGISTRY_URL#https://}"
           registry="${registry#http://}"
           registry="${registry%/}"
           echo "REGISTRY=${registry}" >> "$GITHUB_ENV"
-          echo "${{ secrets.DOCKER_PASS }}" | docker login "${registry}" \
-            -u "${{ secrets.DOCKER_USER }}" --password-stdin
+          docker login "${registry}" -u "${DOCKER_USER}" -p "${DOCKER_PASS}"
 
       - name: Build client/24-ubuntu against the now-populated registry cache
         working-directory: client/24-ubuntu
