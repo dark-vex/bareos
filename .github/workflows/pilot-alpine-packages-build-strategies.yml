@@ -1,0 +1,102 @@
+name: pilot-alpine-packages-build-strategies
+
+# Benchmark only: compares the current QEMU-emulated aarch64 compile
+# (the exact method build-bareos-alpine-packages.yml uses today) against a
+# native arm64 GitHub-hosted runner, for the heaviest real build in this
+# repo — compiling Bareos from source for Alpine/aarch64 via abuild.
+# client/24-ubuntu and storage/24-ubuntu can't be used for an arm64 pilot
+# at all (Ubuntu images here are amd64-only, no arm64 debs exist), and the
+# *-alpine component directories (client/24-alpine etc.) are too thin to
+# show a meaningful QEMU penalty — they just curl a prebuilt .apk. This is
+# the one build in the repo that actually compiles from source, and
+# bareos-alpine-packages/README.md already documents the expected gap
+# ("about a minute" native vs. "several minutes to ~1 hour" emulated).
+#
+# Fixed representative target: bareos_version=24, alpine_branch=3.23-stable
+# (the current active combination per CLAUDE.md's version table). Not a
+# gate — workflow_dispatch only, never runs on push/PR/schedule. Packages
+# are not uploaded or kept; this only measures wall-clock build time.
+on:
+  workflow_dispatch:
+
+env:
+  ALPINE_BRANCH: 3.23-stable
+  BAREOS_VERSION: 24
+
+jobs:
+  qemu-baseline:
+    name: qemu-baseline (ubuntu-latest + QEMU)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up QEMU (aarch64 emulation)
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: arm64
+
+      - name: Compile aarch64 packages (QEMU-emulated)
+        run: |
+          alpine_tag="${ALPINE_BRANCH%-stable}"
+          start=$(date +%s)
+          docker build \
+            --platform linux/arm64 \
+            -f "bareos-alpine-packages/Dockerfile.builder.${alpine_tag}" \
+            -t "bareos-alpine-builder:${alpine_tag}-pilot" \
+            bareos-alpine-packages/
+          mkdir -p artifacts
+          docker run --rm \
+            --platform linux/arm64 \
+            -v "${{ github.workspace }}/artifacts:/artifacts" \
+            -e ALPINE_BRANCH="${ALPINE_BRANCH}" \
+            -e BAREOS_VERSION="${BAREOS_VERSION}" \
+            "bareos-alpine-builder:${alpine_tag}-pilot"
+          end=$(date +%s)
+          echo "BUILD_SECONDS=$((end - start))" >> "$GITHUB_ENV"
+
+      - name: Write timing summary
+        run: |
+          {
+            echo "### qemu-baseline (ubuntu-latest + QEMU)"
+            echo ""
+            echo "| target | platform | seconds |"
+            echo "|---|---|---|"
+            echo "| bareos-alpine-packages (bareos ${BAREOS_VERSION}, alpine ${ALPINE_BRANCH}) | linux/arm64 (emulated) | ${BUILD_SECONDS} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  github-arm64-native:
+    name: github-arm64-native (ubuntu-24.04-arm)
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Compile aarch64 packages (native)
+        run: |
+          alpine_tag="${ALPINE_BRANCH%-stable}"
+          start=$(date +%s)
+          docker build \
+            -f "bareos-alpine-packages/Dockerfile.builder.${alpine_tag}" \
+            -t "bareos-alpine-builder:${alpine_tag}-pilot" \
+            bareos-alpine-packages/
+          mkdir -p artifacts
+          docker run --rm \
+            -v "${{ github.workspace }}/artifacts:/artifacts" \
+            -e ALPINE_BRANCH="${ALPINE_BRANCH}" \
+            -e BAREOS_VERSION="${BAREOS_VERSION}" \
+            "bareos-alpine-builder:${alpine_tag}-pilot"
+          end=$(date +%s)
+          echo "BUILD_SECONDS=$((end - start))" >> "$GITHUB_ENV"
+
+      - name: Write timing summary
+        run: |
+          {
+            echo "### github-arm64-native (ubuntu-24.04-arm)"
+            echo ""
+            echo "| target | platform | seconds |"
+            echo "|---|---|---|"
+            echo "| bareos-alpine-packages (bareos ${BAREOS_VERSION}, alpine ${ALPINE_BRANCH}) | linux/arm64 (native) | ${BUILD_SECONDS} |"
+          } >> "$GITHUB_STEP_SUMMARY"
