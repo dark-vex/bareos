@@ -96,6 +96,9 @@ jobs:
           registry: ${{ secrets.REGISTRY_URL }}
 
   deploy:
+    permissions:
+      contents: read
+      security-events: write
     needs: test
     if: |
       (github.event_name == 'push' || github.event_name == 'schedule') &&
@@ -117,3 +120,11 @@ jobs:
           docker_pass: ${{ secrets.DOCKER_PASS }}
           docker_user: ${{ secrets.DOCKER_USER }}
           registry: ${{ secrets.REGISTRY_URL }}
+          wiz_client_id: ${{ secrets.WIZ_CLIENT_ID }}
+          wiz_client_secret: ${{ secrets.WIZ_CLIENT_SECRET }}
+
+      - name: Upload SARIF results
+        if: success() || failure()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: build/sarif

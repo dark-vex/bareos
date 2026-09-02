@@ -6,14 +6,22 @@ inputs:
     description: 'Registry Password'
     required: true
   docker_user:
-   description: 'Registry Username'
-   required: true
+    description: 'Registry Username'
+    required: true
   image_prefix:
-    description: 'Full image name prefix (overrides registry/GITHUB_REPOSITORY). E.g. harbor.example.com/project/bareos'
+    description: >-
+      Full image name prefix (overrides registry/GITHUB_REPOSITORY).
+      E.g. harbor.example.com/project/bareos
     required: false
   registry:
-   description: 'Registry URL'
-   required: false
+    description: 'Registry URL'
+    required: false
+  wiz_client_id:
+    description: 'Wiz service account client ID'
+    required: true
+  wiz_client_secret:
+    description: 'Wiz service account client secret'
+    required: true
 runs:
   using: 'docker'
   image: 'Dockerfile'
