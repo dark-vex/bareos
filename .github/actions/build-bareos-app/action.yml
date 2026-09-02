@@ -1,6 +1,6 @@
 name: 'build-bareos-app'
 description: 'Build Bareos app images'
-author: 'Barcus'
+author: 'dark-vex'
 inputs:
   registry:
    description: 'Registry URL'

@@ -2,7 +2,7 @@
 version: '3.7'
 services:
   bareos-dir:
-    image: barcus/bareos-director:19-alpine
+    image: darkvex/bareos-director:19-alpine
     volumes:
       - director_config:/etc/bareos
       - director_data:/var/lib/bareos # required for MyCatalog backup
@@ -28,7 +28,7 @@ services:
       - bareos-db
 
   bareos-sd:
-    image: barcus/bareos-storage:19-alpine
+    image: darkvex/bareos-storage:19-alpine
     ports:
       - 9103:9103
     volumes:
@@ -38,7 +38,7 @@ services:
       - BAREOS_SD_PASSWORD=${BAREOS_SD_PASSWORD}
 
   bareos-fd:
-    image: barcus/bareos-client:19-alpine
+    image: darkvex/bareos-client:19-alpine
     volumes:
       - client_config:/etc/bareos
       - director_data:/var/lib/bareos-director # required for MyCatalog backup
@@ -47,7 +47,7 @@ services:
       - FORCE_ROOT=false
 
   bareos-webui:
-    image: barcus/bareos-webui:19-alpine
+    image: darkvex/bareos-webui:19-alpine
     ports:
       - 8080:9100
     environment:
@@ -61,7 +61,7 @@ services:
       - php-fpm
 
   php-fpm:
-    image: barcus/php-fpm-alpine
+    image: darkvex/php-fpm-alpine
     volumes:
       - webui_config:/etc/bareos-webui
       - webui_data:/usr/share/bareos-webui

@@ -2,7 +2,7 @@
 version: '3'
 services:
   bareos-dbcopy:
-    image: barcus/bareos-db-migration
+    image: darkvex/bareos-db-migration
     volumes:
       - /data/mysql/backup:/backup
     environment:

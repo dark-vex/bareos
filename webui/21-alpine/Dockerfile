@@ -1,6 +1,8 @@
 # Bareos Web-ui Dockerfile
 FROM alpine:3.17
 
+LABEL maintainer="bareos@ddlns.net"
+
 RUN apk add --no-cache bareos-webui-nginx
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh

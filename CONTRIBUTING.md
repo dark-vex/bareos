@@ -1,4 +1,4 @@
-# Contributing to barcus/bareos docker image project
+# Contributing to dark-vex/bareos docker image project
 
 We love your input! We want to make contributing to this project as easy and
 transparent as possible, whether it's:
@@ -57,6 +57,6 @@ This document was adapted from the open-source contribution guidelines
 for [Facebook's Draft][source-md]
 
 [github-flow]: https://guides.github.com/introduction/flow/index.html
-[issue-href]: https://github.com/barcus/bareos/issues
+[issue-href]: https://github.com/dark-vex/bareos/issues
 [source-md]: https://gist.github.com/briandk/3d2e8b3ec8daf5a27a62
 [mit-license]: http://choosealicense.com/licenses/mit/

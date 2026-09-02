@@ -2,7 +2,7 @@
 version: '3'
 services:
   bareos-dir:
-    image: barcus/bareos-director:19-ubuntu-mysql
+    image: darkvex/bareos-director:19-ubuntu-mysql
     volumes:
       - /data/bareos/config/director:/etc/bareos
       - /data/bareos/data/director:/var/lib/bareos # required for MyCatalog backup
@@ -29,7 +29,7 @@ services:
       - bareos-db
 
   bareos-sd:
-    image: barcus/bareos-storage:19-ubuntu
+    image: darkvex/bareos-storage:19-ubuntu
     ports:
       - 9103:9103
     volumes:
@@ -39,7 +39,7 @@ services:
       - BAREOS_SD_PASSWORD=${BAREOS_SD_PASSWORD}
 
   bareos-fd:
-    image: barcus/bareos-client:19-ubuntu
+    image: darkvex/bareos-client:19-ubuntu
     volumes:
       - /data/bareos/config/client:/etc/bareos
       - /data/bareos/data/director:/var/lib/bareos-director # required for MyCatalog backup
@@ -50,7 +50,7 @@ services:
       #- PGID=1500
 
   bareos-webui:
-    image: barcus/bareos-webui:19-ubuntu
+    image: darkvex/bareos-webui:19-ubuntu
     ports:
       - 8080:80
     environment:

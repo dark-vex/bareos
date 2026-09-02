@@ -3,6 +3,7 @@
 workdir="${GITHUB_WORKSPACE}/build"
 docker_files=$(find "${workdir}/" -name "bareos-*.tar" 2>/dev/null)
 rm_tags=()
+rm_tags_dockerhub=()
 
 mkdir -p "${workdir}/sarif"
 
@@ -19,6 +20,16 @@ registry="${registry#http://}"
 registry="${registry%/}"
 registry="${registry%%[[:space:]]}"
 
+# Docker Hub is an optional second push target, alongside the primary
+# registry above. Images are already scanned once against the primary
+# registry tag below; the Docker Hub retag/push reuses that scan result
+# instead of scanning the same image content again.
+dockerhub_enabled=0
+if [[ -n "${INPUT_DOCKERHUB_USER:-}" && -n "${INPUT_DOCKERHUB_PASS:-}" ]]; then
+  dockerhub_enabled=1
+  dockerhub_prefix="${INPUT_DOCKERHUB_IMAGE_PREFIX:-darkvex/bareos}"
+fi
+
 # Load Dockerfiles
 echo ::group::Load Dockerfile
 echo "${docker_files}"
@@ -27,8 +38,13 @@ for file in $docker_files; do
 done
 echo ::endgroup::
 
-# Connect Docker Hub
+# Connect to the primary registry
 docker login "${registry}" -u "${INPUT_DOCKER_USER}" -p "${INPUT_DOCKER_PASS}"
+
+# Connect to Docker Hub, if enabled
+if [[ ${dockerhub_enabled} -eq 1 ]]; then
+  docker login -u "${INPUT_DOCKERHUB_USER}" -p "${INPUT_DOCKERHUB_PASS}"
+fi
 
 # Push tags and manfiests
 echo ::group::Push build tags
@@ -64,6 +80,14 @@ while read -r app version arch app_path ; do
   if docker push "${remote_name}"; then
     wizcli tag "${remote_name}"
   fi
+  if [[ ${dockerhub_enabled} -eq 1 ]]; then
+    dockerhub_name="${dockerhub_prefix}-${app}:${build_tag}"
+    if [[ $version =~ $re ]] ; then
+      rm_tags_dockerhub+=("${dockerhub_prefix}-${app}:${build_tag}")
+    fi
+    docker tag "${local_name}" "${dockerhub_name}"
+    docker push "${dockerhub_name}"
+  fi
 done < "${workdir}/app_build.txt"
 echo ::endgroup::
 
@@ -96,6 +120,26 @@ while read -r build_app s_tag t_tag ; do
       fi
     fi
   fi
+  if [[ ${dockerhub_enabled} -eq 1 ]]; then
+    if [[ $s_tag =~ ^[a-z0-9]+-ubuntu.*$ ]]; then
+      docker tag "${dockerhub_prefix}-${build_app}:${s_tag}" \
+        "${dockerhub_prefix}-${build_app}:${t_tag}"
+      docker push "${dockerhub_prefix}-${build_app}:${t_tag}"
+    fi
+    if [[ $s_tag =~ ^[a-z0-9]+-alpine.*$ ]]; then
+      dockerhub_manifest_refs=()
+      while read -r arch; do
+        dockerhub_manifest_refs+=("${dockerhub_prefix}-${build_app}:${s_tag}-${arch}")
+      done < <(awk -v app="${build_app}" -v tag="${s_tag}" \
+          '$1 == app && $2 == tag { print $3 }' "${workdir}/app_build.txt" | sort -u)
+      if [[ ${#dockerhub_manifest_refs[@]} -eq 0 ]]; then
+        echo "::error:: no per-arch tags found in app_build.txt for ${build_app}:${s_tag}, skipping Docker Hub manifest"
+      else
+        docker manifest create "${dockerhub_prefix}-${build_app}:${t_tag}" "${dockerhub_manifest_refs[@]}"
+        docker manifest push "${dockerhub_prefix}-${build_app}:${t_tag}"
+      fi
+    fi
+  fi
 done < "${workdir}/tag_build.txt"
 echo ::endgroup::
 
@@ -104,6 +148,10 @@ echo ::group::Clean
 if [[ ${#rm_tags[@]} -gt 0 ]]; then
   docker run --rm lumir/remove-dockerhub-tag \
     --user "${GITHUB_ACTOR}" --password "${INPUT_DOCKER_PASS}" "${rm_tags[@]}"
+fi
+if [[ ${dockerhub_enabled} -eq 1 && ${#rm_tags_dockerhub[@]} -gt 0 ]]; then
+  docker run --rm lumir/remove-dockerhub-tag \
+    --user "${INPUT_DOCKERHUB_USER}" --password "${INPUT_DOCKERHUB_PASS}" "${rm_tags_dockerhub[@]}"
 fi
 echo ::endgroup::
 

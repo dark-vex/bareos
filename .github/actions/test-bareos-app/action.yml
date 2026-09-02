@@ -1,6 +1,6 @@
 name: 'test-bareos-app'
 description: 'Test Bareos docker images'
-author: 'Barcus'
+author: 'dark-vex'
 inputs:
   registry:
    description: 'Registry URL'
