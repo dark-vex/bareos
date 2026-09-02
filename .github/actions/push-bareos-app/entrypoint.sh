@@ -86,9 +86,7 @@ while read -r app version arch app_path ; do
       rm_tags_dockerhub+=("${dockerhub_prefix}-${app}:${build_tag}")
     fi
     docker tag "${local_name}" "${dockerhub_name}"
-    if docker push "${dockerhub_name}"; then
-      wizcli tag "${dockerhub_name}"
-    fi
+    docker push "${dockerhub_name}"
   fi
 done < "${workdir}/app_build.txt"
 echo ::endgroup::
@@ -126,9 +124,7 @@ while read -r build_app s_tag t_tag ; do
     if [[ $s_tag =~ ^[a-z0-9]+-ubuntu.*$ ]]; then
       docker tag "${dockerhub_prefix}-${build_app}:${s_tag}" \
         "${dockerhub_prefix}-${build_app}:${t_tag}"
-      if docker push "${dockerhub_prefix}-${build_app}:${t_tag}"; then
-        wizcli tag "${dockerhub_prefix}-${build_app}:${t_tag}"
-      fi
+      docker push "${dockerhub_prefix}-${build_app}:${t_tag}"
     fi
     if [[ $s_tag =~ ^[a-z0-9]+-alpine.*$ ]]; then
       dockerhub_manifest_refs=()
@@ -140,9 +136,7 @@ while read -r build_app s_tag t_tag ; do
         echo "::error:: no per-arch tags found in app_build.txt for ${build_app}:${s_tag}, skipping Docker Hub manifest"
       else
         docker manifest create "${dockerhub_prefix}-${build_app}:${t_tag}" "${dockerhub_manifest_refs[@]}"
-        if docker manifest push "${dockerhub_prefix}-${build_app}:${t_tag}"; then
-          wizcli tag "${dockerhub_prefix}-${build_app}:${t_tag}"
-        fi
+        docker manifest push "${dockerhub_prefix}-${build_app}:${t_tag}"
       fi
     fi
   fi
