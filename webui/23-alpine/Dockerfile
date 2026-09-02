@@ -1,6 +1,8 @@
 # Bareos Web-ui Dockerfile
 FROM alpine:3.21
 
+LABEL maintainer="bareos@ddlns.net"
+
 ARG TARGETARCH
 
 # Alpine 3.21's community repo ships bareos-webui-nginx-23.0.4 for amd64 and

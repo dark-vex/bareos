@@ -1,7 +1,7 @@
 # Bareos Web-ui Dockerfile
 FROM ubuntu:focal
 
-LABEL maintainer="barcus@tou.nu"
+LABEL maintainer="bareos@ddlns.net"
 
 ARG BUILD_DATE
 ARG NAME
@@ -12,7 +12,7 @@ LABEL org.label-schema.schema-version="1.0" \
       org.label-schema.build-date=$BUILD_DATE \
       org.label-schema.name=$NAME \
       org.label-schema.vcs-ref=$VCS_REF \
-      org.label-schema.vcs-url="https://github.com/barcus/bareos" \
+      org.label-schema.vcs-url="https://github.com/dark-vex/bareos" \
       org.label-schema.version=$VERSION
 
 ENV BAREOS_KEY http://download.bareos.org/bareos/release/21/xUbuntu_20.04/Release.key

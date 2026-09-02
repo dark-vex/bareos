@@ -5,17 +5,17 @@
 ##     -f docker-compose-alpine-pgsql.yml -f docker-compose-alpine-pgsql.override.yml up -d
 ##
 ## Set BAREOS_IMAGE_REPO to a locally built image namespace (e.g. bareos-test) to test
-## images built from a working tree instead of published barcus/* images on Docker Hub.
+## images built from a working tree instead of published darkvex/* images on Docker Hub.
 version: '3'
 services:
   bareos-dir:
-    image: ${BAREOS_IMAGE_REPO:-barcus}/bareos-director:${BAREOS_ALPINE_TAG:-23-alpine}-pgsql
+    image: ${BAREOS_IMAGE_REPO:-darkvex}/bareos-director:${BAREOS_ALPINE_TAG:-23-alpine}-pgsql
 
   bareos-sd:
-    image: ${BAREOS_IMAGE_REPO:-barcus}/bareos-storage:${BAREOS_ALPINE_TAG:-23-alpine}
+    image: ${BAREOS_IMAGE_REPO:-darkvex}/bareos-storage:${BAREOS_ALPINE_TAG:-23-alpine}
 
   bareos-fd:
-    image: ${BAREOS_IMAGE_REPO:-barcus}/bareos-client:${BAREOS_ALPINE_TAG:-23-alpine}
+    image: ${BAREOS_IMAGE_REPO:-darkvex}/bareos-client:${BAREOS_ALPINE_TAG:-23-alpine}
 
   bareos-webui:
-    image: ${BAREOS_IMAGE_REPO:-barcus}/bareos-webui:${BAREOS_ALPINE_TAG:-23-alpine}
+    image: ${BAREOS_IMAGE_REPO:-darkvex}/bareos-webui:${BAREOS_ALPINE_TAG:-23-alpine}

@@ -1,6 +1,6 @@
 name: 'prepare-bareos-app'
 description: 'Prepare Bareos app build file'
-author: 'Barcus'
+author: 'dark-vex'
 inputs:
   bareos_app:
     description: 'Bareos app name'

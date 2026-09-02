@@ -1,6 +1,8 @@
 # Bareos Web-ui Dockerfile
 FROM alpine:3.23
 
+LABEL maintainer="bareos@ddlns.net"
+
 ARG TARGETARCH
 ARG TARGETVARIANT
 
