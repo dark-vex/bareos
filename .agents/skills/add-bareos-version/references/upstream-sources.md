@@ -32,6 +32,7 @@ against the live Alpine CDN (see Verification commands below).
 | 25 | alpine:3.24 | bareos-25.0.3-r0 | ✓ | ✗ needs custom build | ✗ needs custom build | no — folded into base `bareos` |
 
 **Notes**:
+
 - `bareos-storage`, `bareos-filedaemon`, `bareos-webui-nginx` subpackage names are stable
   across all branches above; confirmed present alongside `bareos` on every branch tested.
 - From Bareos 24 (Alpine 3.22+) the postgres catalog driver (`bareos-fd-postgresql.py`,
