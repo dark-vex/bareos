@@ -16,6 +16,18 @@ inputs:
   registry:
     description: 'Registry URL'
     required: false
+  dockerhub_user:
+    description: >-
+      Docker Hub username. When set together with dockerhub_pass, images are
+      additionally pushed to Docker Hub alongside the primary registry.
+    required: false
+  dockerhub_pass:
+    description: 'Docker Hub password/token'
+    required: false
+  dockerhub_image_prefix:
+    description: 'Docker Hub image name prefix'
+    required: false
+    default: 'darkvex/bareos'
   wiz_client_id:
     description: 'Wiz service account client ID'
     required: true

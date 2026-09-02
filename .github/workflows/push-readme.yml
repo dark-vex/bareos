@@ -23,6 +23,6 @@ jobs:
       - name: Update Docker Hub description
         uses: peter-evans/dockerhub-description@v5.0.0
         with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_PASS }}
-          repository: ${{ secrets.REGISTRY_URL }}-${{ matrix.module }}
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
+          repository: darkvex/bareos-${{ matrix.module }}
