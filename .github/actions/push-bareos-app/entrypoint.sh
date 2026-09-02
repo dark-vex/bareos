@@ -13,6 +13,14 @@ export DOCKER_CLI_EXPERIMENTAL="enabled"
 export WIZ_CLIENT_ID="${INPUT_WIZ_CLIENT_ID}"
 export WIZ_CLIENT_SECRET="${INPUT_WIZ_CLIENT_SECRET}"
 
+# TEMPORARY DIAGNOSTIC (remove once Wiz connectivity/auth is confirmed working):
+# confirms the secrets actually made it into the container without ever
+# printing their value.
+echo ::group::Wiz credential diagnostic
+echo "WIZ_CLIENT_ID length: ${#WIZ_CLIENT_ID}"
+echo "WIZ_CLIENT_SECRET length: ${#WIZ_CLIENT_SECRET}"
+echo ::endgroup::
+
 # Strip any http/https scheme prefix and trailing slash
 registry="${INPUT_REGISTRY#https://}"
 registry="${registry#http://}"
@@ -45,9 +53,11 @@ while read -r app version arch app_path ; do
   remote_name="${img_prefix}-${app}:${build_tag}"
   docker tag "${local_name}" "${remote_name}"
   sarif_file="${workdir}/sarif/${app}-${build_tag}.json"
+  wiz_log_file="${workdir}/sarif/${app}-${build_tag}.wizlog"
   if wizcli scan container-image "${remote_name}" \
       --dockerfile "${app_path}/Dockerfile" \
-      --sarif-output-file "${sarif_file}"; then
+      --sarif-output-file "${sarif_file}" \
+      --log "${wiz_log_file}"; then
     # Directory uploads require a stable, unique category for every SARIF run.
     if ! jq --arg category "wiz/${app}-${build_tag}" \
         '.runs |= (to_entries | map(.value.automationDetails.id = ($category + "-" + (.key | tostring) + "/") | .value))' \
@@ -60,6 +70,12 @@ while read -r app version arch app_path ; do
   else
     echo "::warning:: Wiz scan failed for ${remote_name}; image publishing will continue"
     rm -f "${sarif_file}" "${sarif_file}.tmp"
+  fi
+  # TEMPORARY DIAGNOSTIC (remove once Wiz connectivity/auth is confirmed working)
+  if [[ -s "${wiz_log_file}" ]]; then
+    echo "::group::Wiz debug log for ${remote_name}"
+    cat "${wiz_log_file}"
+    echo "::endgroup::"
   fi
   if docker push "${remote_name}"; then
     wizcli tag "${remote_name}"
