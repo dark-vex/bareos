@@ -16,8 +16,8 @@ LABEL org.label-schema.schema-version="1.0" \
 
 RUN pip install --no-cache-dir --upgrade pip==22.0.4
 
-RUN adduser -D bareos
-USER bareos
+RUN adduser -D -u 1000 bareos
+USER 1000
 WORKDIR /home/bareos
 
 ENV PATH="/home/bareos/.local/bin:${PATH}"
