@@ -1,4 +1,4 @@
-director-pgsql/20-alpine/Dockerfile # Bareos director Dockerfile
+# Bareos director Dockerfile
 FROM alpine:3.15
 
 LABEL maintainer="bareos@ddlns.net"
