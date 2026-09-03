@@ -145,9 +145,11 @@ echo ::endgroup::
 echo ::group::Clean
 if [[ ${#rm_tags[@]} -gt 0 ]]; then
   for tag in "${rm_tags[@]}"; do
-    if ! docker run --rm ghcr.io/regclient/regctl:v0.11.6 tag delete "${tag}" \
+    if docker run --rm ghcr.io/regclient/regctl:v0.11.6 tag delete "${tag}" \
         --host "reg=${registry},user=${INPUT_DOCKER_USER},pass=${INPUT_DOCKER_PASS},tls=enabled" \
         --ignore-missing; then
+      echo "removed: ${tag}"
+    else
       echo "::warning:: failed to delete tag ${tag}"
     fi
   done
