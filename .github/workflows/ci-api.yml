@@ -129,7 +129,7 @@ jobs:
         id: sarif_check
         if: success() || failure()
         run: |
-          if compgen -G "build/sarif/*.json" > /dev/null; then
+          if compgen -G "build/sarif/*.sarif" > /dev/null; then
             echo "has_files=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_files=false" >> "$GITHUB_OUTPUT"
