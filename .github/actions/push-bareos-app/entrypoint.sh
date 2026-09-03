@@ -2,7 +2,6 @@
 
 workdir="${GITHUB_WORKSPACE}/build"
 docker_files=$(find "${workdir}/" -name "bareos-*.tar" 2>/dev/null)
-rm_tags=()
 rm_tags_dockerhub=()
 
 mkdir -p "${workdir}/sarif"
@@ -54,13 +53,12 @@ while read -r app version arch app_path ; do
   re='^[0-9]+-alpine.*$'
   if [[ $version =~ $re ]] ; then
     build_tag="${version}-${arch}"
-    rm_tags+=("${img_prefix}-${app}:${build_tag}")
   fi
   # Re-tag local image with registry-qualified name then push
   local_name="bareos-${app}:${build_tag}"
   remote_name="${img_prefix}-${app}:${build_tag}"
   docker tag "${local_name}" "${remote_name}"
-  sarif_file="${workdir}/sarif/${app}-${build_tag}.json"
+  sarif_file="${workdir}/sarif/${app}-${build_tag}.sarif"
   if wizcli scan container-image "${remote_name}" \
       --dockerfile "${app_path}/Dockerfile" \
       --sarif-output-file "${sarif_file}"; then
@@ -115,9 +113,7 @@ while read -r build_app s_tag t_tag ; do
       echo "::error:: no per-arch tags found in app_build.txt for ${build_app}:${s_tag}, skipping manifest"
     else
       docker manifest create "${img_prefix}-${build_app}:${t_tag}" "${manifest_refs[@]}"
-      if docker manifest push "${img_prefix}-${build_app}:${t_tag}"; then
-        wizcli tag "${img_prefix}-${build_app}:${t_tag}"
-      fi
+      docker manifest push "${img_prefix}-${build_app}:${t_tag}"
     fi
   fi
   if [[ ${dockerhub_enabled} -eq 1 ]]; then
@@ -145,10 +141,6 @@ echo ::endgroup::
 
 # Clean Alpine build_tag (amd/arm)
 echo ::group::Clean
-if [[ ${#rm_tags[@]} -gt 0 ]]; then
-  docker run --rm lumir/remove-dockerhub-tag \
-    --user "${GITHUB_ACTOR}" --password "${INPUT_DOCKER_PASS}" "${rm_tags[@]}"
-fi
 if [[ ${dockerhub_enabled} -eq 1 && ${#rm_tags_dockerhub[@]} -gt 0 ]]; then
   docker run --rm lumir/remove-dockerhub-tag \
     --user "${INPUT_DOCKERHUB_USER}" --password "${INPUT_DOCKERHUB_PASS}" "${rm_tags_dockerhub[@]}"
