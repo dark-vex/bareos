@@ -74,13 +74,34 @@ against the live Alpine CDN (see Verification commands below).
 
 ## api component (bareos-restapi pip package)
 
-| Version | Pip spec | PyPI status |
-|---------|----------|-------------|
-| 21 | `>=21*,<22*` | ✓ 21.1.9 on PyPI |
-| 22 | `>=22*,<23*` | ✗ not on PyPI — build will fail |
-| 24 | `>=24*,<25*` | ✗ not on PyPI — build will fail |
+Verified 2026-09-03 against `https://pypi.org/pypi/bareos-restapi/json`: PyPI
+publishes releases for every Bareos version 21–25, so `api/N-alpine` dirs
+exist for all five (21, 22, 23, 24, 25). PyPI availability is necessary but
+**not sufficient** — see the import-check note below.
 
-**api component note**: The existing api/22-alpine and api/24-alpine Dockerfiles have broken pip constraints. Only api/21-alpine is reliably buildable. Do not generate new api dirs without first verifying PyPI availability.
+| Version | Pip spec | PyPI status | Import check |
+|---------|----------|-------------|---------------|
+| 21 | `>=21*,<22*` | ✓ 21.1.9 on PyPI | ✗ fails — see note |
+| 22 | `>=22*,<23*` | ✓ 22.1.5 on PyPI | ✗ fails — see note |
+| 23 | `>=23*,<24*` | ✓ 23.1.1 on PyPI | ✓ imports cleanly |
+| 24 | `>=24*,<25*` | ✓ 24.0.10 on PyPI | ✓ imports cleanly |
+| 25 | `>=25*,<26*` | ✓ 25.1.0 on PyPI | ✓ imports cleanly |
+
+**api component note**: `pip install` succeeding is not enough — verified
+2026-09-03 via `docker run --rm <image> python -c "import bareos_restapi"`.
+21.x and 22.x's model code raises `PydanticSchemaGenerationError` at import
+time because pip has no upper bound on `pydantic` and resolves to a v2
+release those two can't parse; 23.x+ import cleanly. CI's own test step
+(`.github/actions/test-bareos-app`) only checks `pip show` output, so it does
+**not** catch this — the import must be checked manually. `api/21-alpine` and
+`api/22-alpine` exist in the source tree but are excluded from CI
+(`.github/actions/prepare-bareos-app/entrypoint.sh` skips `api` versions
+`<= 22`) until this is fixed upstream or the transitive deps are pinned.
+`latest_api` in that same script tracks the api version that gets the bare
+`N`/`alpine`/`latest` tags — currently `24`. Before generating a new api dir:
+verify the pip spec resolves via `https://pypi.org/pypi/bareos-restapi/json`,
+build it locally, **and** run the import check above — don't trust a
+successful `pip install` alone.
 
 ## Verification commands
 
