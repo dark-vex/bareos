@@ -3,7 +3,7 @@
 BUILDX_VER='v0.5.1'
 latest_ubuntu='25'
 latest_alpine='25'
-latest_api='21'
+latest_api='24'
 
 build_file="${GITHUB_WORKSPACE}/build/app_build.txt"
 tag_file="${GITHUB_WORKSPACE}/build/tag_build.txt"
@@ -31,13 +31,15 @@ for file in $docker_files; do
   if [[ "$version" -le 21 ]]; then
     continue
   fi
-  base_img=$(echo "$version_dir" |cut -d'-' -f2)
-  [[ $version -ge 20 ]] && default_backend='pgsql'
-
-  # bareos-restapi is only published for Bareos 21 at the moment.
-  if [ "${app}" == 'api' ] && [ "${version}" != "$latest_api" ]; then
+  # bareos-restapi 22.x pulls in a pydantic release its model code can't
+  # parse (PydanticSchemaGenerationError on import, verified via a local
+  # build+import spike 2026-09-03); 23.x+ import cleanly. Skip until
+  # upstream fixes it or we pin deps in that Dockerfile.
+  if [ "${app}" == 'api' ] && [[ "$version" -le 22 ]]; then
     continue
   fi
+  base_img=$(echo "$version_dir" |cut -d'-' -f2)
+  [[ $version -ge 20 ]] && default_backend='pgsql'
 
   # Define default tag
   tag_build="${version}-${base_img}"
@@ -107,7 +109,7 @@ for file in $docker_files; do
         echo "${app} ${tag_build} latest" >> "$tag_file"
       fi
     fi
-    if [ "${app}" != 'director' ] && [ "${version}" == "$latest_alpine" ]; then
+    if [ "${app}" != 'director' ] && [ "${app}" != 'api' ] && [ "${version}" == "$latest_alpine" ]; then
       echo "${app} ${tag_build} alpine" >> "$tag_file"
         echo "${app} ${tag_build} latest" >> "$tag_file"
     fi

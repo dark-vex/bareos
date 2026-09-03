@@ -74,13 +74,20 @@ two versions regardless of who builds the package; see
 
 `bareos-api`:
 
-| base | tags |
-|:--|:--|
-| Alpine | `21-alpine`, `21`, `alpine`, `latest` |
+| tags |
+|:--|
+| `25-alpine` |
+| `24-alpine`, `24`, `alpine`, `latest` |
+| `23-alpine` |
 
-The `api/22-alpine` and `api/24-alpine` directories are present in the source
-tree, but they are not released because `bareos-restapi` is not available on
-PyPI for those versions.
+All `api/N-alpine` images are built from `python:3.10-alpine` and install the
+`bareos-restapi` PyPI package pinned to that Bareos version; only the latest
+version (currently 24) also gets the bare `24`, `alpine`, and `latest` tags.
+
+The `api/21-alpine` and `api/22-alpine` directories are present in the source
+tree but not built or published: those `bareos-restapi` releases pull in a
+`pydantic` version their model code can't parse (fails on import with
+`PydanticSchemaGenerationError`), while 23+ import cleanly.
 
 ## Version Support
 
@@ -227,7 +234,7 @@ docker build -t bareos-director:24-ubuntu director-pgsql/24-ubuntu
 docker build -t bareos-storage:24-ubuntu storage/24-ubuntu
 docker build -t bareos-client:24-ubuntu client/24-ubuntu
 docker build -t bareos-webui:24-ubuntu webui/24-ubuntu
-docker build -t bareos-api:21-alpine api/21-alpine
+docker build -t bareos-api:24-alpine api/24-alpine
 ```
 
 For Ubuntu 22/23/24 images, the package release assets must exist before the
