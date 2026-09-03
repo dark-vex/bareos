@@ -91,14 +91,14 @@ tree but not built or published: those `bareos-restapi` releases pull in a
 
 ## Version Support
 
-| Bareos version | Ubuntu image | Alpine image | Notes |
-|:--|:--|:--|:--|
-| 25 | `25-ubuntu` on Ubuntu 24.04 | `25-alpine` on Alpine 3.24 | Ubuntu from `download.bareos.org/current/`; Alpine amd64+arm64/v8 |
-| 24 | `24-ubuntu` on Ubuntu 24.04 | `24-alpine` on Alpine 3.23 | Ubuntu from GitHub package release; Alpine amd64+arm64/v8 |
-| 23 | `23-ubuntu` on Ubuntu 22.04 | `23-alpine` on Alpine 3.21 | Ubuntu from GitHub package release; Alpine amd64+arm64/v8+arm/v7 |
-| 22 | `22-ubuntu` on Ubuntu 22.04 | `22-alpine` on Alpine 3.18 | Ubuntu uses GitHub package release; Alpine amd64+arm64/v8 |
-| 21 | `21-ubuntu` | `21-alpine` | Upstream versioned repo / Alpine package |
-| 20 | `20-ubuntu` | `20-alpine` | Last version with MySQL backend |
+| Bareos version | Ubuntu image | Alpine image | API image | Notes |
+|:--|:--|:--|:--|:--|
+| 25 | `25-ubuntu` on Ubuntu 24.04 | `25-alpine` on Alpine 3.24 | `25-alpine` | Ubuntu from `download.bareos.org/current/`; Alpine amd64+arm64/v8 |
+| 24 | `24-ubuntu` on Ubuntu 24.04 | `24-alpine` on Alpine 3.23 | `24-alpine` (latest) | Ubuntu from GitHub package release; Alpine amd64+arm64/v8 |
+| 23 | `23-ubuntu` on Ubuntu 22.04 | `23-alpine` on Alpine 3.21 | `23-alpine` | Ubuntu from GitHub package release; Alpine amd64+arm64/v8+arm/v7 |
+| 22 | `22-ubuntu` on Ubuntu 22.04 | `22-alpine` on Alpine 3.18 | — | Ubuntu uses GitHub package release; Alpine amd64+arm64/v8; `bareos-restapi` 22.x fails to import (see `bareos-api` tags above) |
+| 21 | `21-ubuntu` | `21-alpine` | — | Upstream versioned repo / Alpine package; `bareos-restapi` 21.x fails to import (see `bareos-api` tags above) |
+| 20 | `20-ubuntu` | `20-alpine` | — | Last version with MySQL backend; `bareos-restapi` was never published for 20 |
 
 Bareos removed the MySQL catalog backend in version 21. Use `director-mysql/*`
 only for Bareos 20 or older and migrate existing MySQL catalogs to PostgreSQL
