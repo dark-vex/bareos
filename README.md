@@ -218,6 +218,15 @@ Bareos console:
 docker exec -it bareos-dir bconsole
 ```
 
+On Bareos 24+ images, `BAREOS_WEBUI_PASSWORD` is also reused as the
+Director's own local console password (what `bconsole` above authenticates
+with) and its tray-monitor console — those bundled resources ship with an
+empty password that Bareos now rejects at startup, and there's no separate
+`.env` variable for them. Unlike the WebUI's console, which is
+ACL-restricted (denies `.sql`, `configure`, `create`, `delete`, `purge`,
+etc.), the Director's local console has no ACL — treat this password as a
+full-privilege credential, not just a WebUI login.
+
 REST API docs:
 
 ```text
