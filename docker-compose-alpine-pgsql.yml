@@ -53,7 +53,7 @@ services:
       #- PGID=1500 # force bareos group ID
 
   bareos-webui:
-    image: barcus/bareos-webui:25-alpine
+    image: darkvex/bareos-webui:25-alpine
     ports:
       - 8080:9100
     environment:
@@ -67,7 +67,7 @@ services:
       - php-fpm
 
   php-fpm:
-    image: darkvex/php-fpm-alpine
+    image: barcus/php-fpm-alpine
     volumes:
       - /data/bareos/config/webui:/etc/bareos-webui
       - /data/bareos/data/webui:/usr/share/bareos-webui
