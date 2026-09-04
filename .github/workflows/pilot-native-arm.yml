@@ -143,8 +143,16 @@ jobs:
           docker_pass: ${{ secrets.DOCKER_PASS }}
           docker_user: ${{ secrets.DOCKER_USER }}
           registry: ${{ secrets.REGISTRY_URL }}
+          # Stay inside the existing registry project (production already
+          # pushes to ${REGISTRY_URL}/${github.repository}-<app>; a
+          # "pilot-<repo>" project was never created and every push/manifest
+          # call against it failed unauthorized in the first live run:
+          # https://github.com/dark-vex/bareos/actions/runs/33897954747).
+          # Suffixing the repo name with "-pilot" keeps this in the project
+          # that's known to exist while staying clearly distinct from real
+          # bareos-director tags.
           image_prefix: >-
-            ${{ secrets.REGISTRY_URL }}/pilot-${{ github.repository }}
+            ${{ secrets.REGISTRY_URL }}/${{ github.repository }}-pilot
           wiz_client_id: ${{ secrets.WIZ_CLIENT_ID }}
           wiz_client_secret: ${{ secrets.WIZ_CLIENT_SECRET }}
 
