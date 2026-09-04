@@ -16,6 +16,13 @@ jobs:
         with:
           bareos_app: director-pgsql
 
+      - name: Fix build directory ownership
+        # prepare-bareos-app runs as root inside a container, so build/ and
+        # its contents come out root-owned; reclaim them for the runner user
+        # before a plain (non-container) step tries to write new files there.
+        shell: bash
+        run: sudo chown -R "$(id -u):$(id -g)" build
+
       - name: Limit pilot to Bareos 23 Alpine
         shell: bash
         run: |
