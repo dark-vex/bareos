@@ -2,6 +2,7 @@
 #set -x
 
 bareos_fd_config="/etc/bareos/bareos-fd.d/director/bareos-dir.conf"
+bareos_fd_mon_config="/etc/bareos/bareos-fd.d/director/bareos-mon.conf"
 
 if [ "${FORCE_ROOT}" = true ]; then
   BAREOS_DAEMON_USER='root'
@@ -17,6 +18,11 @@ if [ $(id -u) = '0' ]; then
 
     # Force client/file daemon password
     sed -i 's#Password = .*#Password = '\""${BAREOS_FD_PASSWORD}"\"'#' $bareos_fd_config
+
+    # Bareos >=24 rejects the empty Password the bundled bareos-mon.conf
+    # ships with (startup fails: "Empty Password not allowed in Resource
+    # bareos-mon").
+    sed -i 's#Password = .*#Password = '\""${BAREOS_FD_PASSWORD}"\"'#' $bareos_fd_mon_config
 
     # Control file
     touch /etc/bareos/bareos-config.control

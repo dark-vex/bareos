@@ -1,7 +1,7 @@
 #!/usr/bin/env ash
 
 github_bareos='raw.githubusercontent.com/bareos/bareos'
-webui_admin_conf='Release/25.0.3/webui/install/bareos/bareos-dir.d/profile/webui-admin.conf'
+webui_admin_conf='Release/25.0.3/core/src/defaultconfigs/bareos-dir.d/profile/webui-admin.conf'
 admin_conf='Release/25.0.3/webui/install/bareos/bareos-dir.d/console/admin.conf.example'
 
 if [ ! -f /etc/bareos/bareos-config.control ]; then
@@ -9,13 +9,13 @@ if [ ! -f /etc/bareos/bareos-config.control ]; then
 
   # Download default admin profile config
   if [ ! -f /etc/bareos/bareos-dir.d/profile/webui-admin.conf ]; then
-    curl --silent --insecure "https://${github_bareos}/${webui_admin_conf}" \
+    curl --silent --fail --insecure "https://${github_bareos}/${webui_admin_conf}" \
       --output /etc/bareos/bareos-dir.d/profile/webui-admin.conf
   fi
 
   # Download default webUI admin config
   if [ ! -f /etc/bareos/bareos-dir.d/console/admin.conf ]; then
-    curl --silent --insecure "https://${github_bareos}/${admin_conf}" \
+    curl --silent --fail --insecure "https://${github_bareos}/${admin_conf}" \
       --output /etc/bareos/bareos-dir.d/console/admin.conf
   fi
 
@@ -63,6 +63,17 @@ if [ ! -f /etc/bareos/bareos-config.control ]; then
   # webUI
   sed -i 's#Password = .*#Password = '\""${BAREOS_WEBUI_PASSWORD}"\"'#' \
     /etc/bareos/bareos-dir.d/console/admin.conf
+
+  # Bareos >=24 rejects the empty Password these bundled local-only
+  # resources ship with ("Empty Password not allowed in Resource ..."); the
+  # director's own bconsole.conf must carry the same value as its "myself"
+  # Director resource for local `bconsole` access to keep working.
+  sed -i 's#Password = .*#Password = '\""${BAREOS_WEBUI_PASSWORD}"\"'#' \
+    /etc/bareos/bareos-dir.d/director/bareos-dir.conf
+  sed -i 's#Password = .*#Password = '\""${BAREOS_WEBUI_PASSWORD}"\"'#' \
+    /etc/bareos/bconsole.conf
+  sed -i 's#Password = .*#Password = '\""${BAREOS_WEBUI_PASSWORD}"\"'#' \
+    /etc/bareos/bareos-dir.d/console/bareos-mon.conf
 
 
   # MyCatalog Backup

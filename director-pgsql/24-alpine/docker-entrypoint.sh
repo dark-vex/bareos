@@ -64,6 +64,17 @@ if [ ! -f /etc/bareos/bareos-config.control ]; then
   sed -i 's#Password = .*#Password = '\""${BAREOS_WEBUI_PASSWORD}"\"'#' \
     /etc/bareos/bareos-dir.d/console/admin.conf
 
+  # Bareos >=24 rejects the empty Password these bundled local-only
+  # resources ship with ("Empty Password not allowed in Resource ..."); the
+  # director's own bconsole.conf must carry the same value as its "myself"
+  # Director resource for local `bconsole` access to keep working.
+  sed -i 's#Password = .*#Password = '\""${BAREOS_WEBUI_PASSWORD}"\"'#' \
+    /etc/bareos/bareos-dir.d/director/bareos-dir.conf
+  sed -i 's#Password = .*#Password = '\""${BAREOS_WEBUI_PASSWORD}"\"'#' \
+    /etc/bareos/bconsole.conf
+  sed -i 's#Password = .*#Password = '\""${BAREOS_WEBUI_PASSWORD}"\"'#' \
+    /etc/bareos/bareos-dir.d/console/bareos-mon.conf
+
 
   # MyCatalog Backup
   sed -i "s#/var/lib/bareos/bareos.sql#/var/lib/bareos-director/bareos.sql#" \
