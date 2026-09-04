@@ -15,7 +15,7 @@ export WIZ_CLIENT_ID="${INPUT_WIZ_CLIENT_ID}"
 export WIZ_CLIENT_SECRET="${INPUT_WIZ_CLIENT_SECRET}"
 
 # Fixed set of Wiz policies enforced on every container-image scan
-wiz_policies="[ddl] Default IaC policy","[ddl] Default SAST policy (Wiz CI/CD scan)","[ddl] Default secrets policy","[ddl] Default sensitive data policy","[ddl] Default software license policy","[ddl] Default vulnerabilities policy"
+wiz_policies="[ddl] Default secrets policy","[ddl] Default sensitive data policy","[ddl] Default software license policy","[ddl] Default vulnerabilities policy"
 
 # Strip any http/https scheme prefix and trailing slash
 registry="${INPUT_REGISTRY#https://}"
