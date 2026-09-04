@@ -78,7 +78,7 @@ services:
   # Optional tools
   # Bareos API
   bareos-api:
-    image: darkvex/bareos-api:21
+    image: darkvex/bareos-api:25
     ports:
       - 8000:8000
     environment:
