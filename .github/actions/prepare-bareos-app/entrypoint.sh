@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-BUILDX_VER='v0.5.1'
 latest_ubuntu='25'
 latest_alpine='25'
 latest_api='24'
@@ -122,6 +121,13 @@ for file in $docker_files; do
 done
 echo ::endgroup::
 
+# Keep the canonical build list for deploy, and give each matrix cell only the
+# rows for the architecture it builds.
+for arch in amd64 arm64 armv7; do
+  awk -v arch="${arch}" '$3 == arch' "${build_file}" \
+    > "${GITHUB_WORKSPACE}/build/app_build-${arch}.txt"
+done
+
 # Debug output
 echo ::group::Debug output
 echo "### Build list"
@@ -129,9 +135,5 @@ cat "$build_file"
 echo "### Tag list"
 cat "$tag_file"
 echo ::endgroup::
-
-# Download Docker Buildx plugin
-buildx_url="https://github.com/docker/buildx/releases/download/${BUILDX_VER}/buildx-${BUILDX_VER}.linux-amd64"
-curl --silent -L "${buildx_url}" > "${GITHUB_WORKSPACE}/build/docker-buildx"
 
 #EOF

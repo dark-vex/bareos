@@ -1,12 +1,29 @@
 #!/usr/bin/env bash
 
 workdir="${GITHUB_WORKSPACE}/build"
+build_file="${INPUT_BUILD_FILE:-app_build.txt}"
+BUILDX_VER='v0.5.1'
 export DOCKER_CLI_EXPERIMENTAL="enabled"
 
-# Load buildx binary
-echo ::group::Load Buildx
+# Install the buildx binary matching the native runner architecture. armv7
+# builds run on amd64 under QEMU, so they also use the amd64 plugin.
+echo ::group::Install Buildx
+case "$(uname -m)" in
+  x86_64)
+    buildx_arch='amd64'
+    ;;
+  aarch64|arm64)
+    buildx_arch='arm64'
+    ;;
+  *)
+    echo "::error:: Unsupported runner architecture: $(uname -m)"
+    exit 1
+    ;;
+esac
 mkdir -vp ~/.docker/cli-plugins/ ~/dockercache
-cp "${workdir}/docker-buildx" ~/.docker/cli-plugins/
+buildx_url="https://github.com/docker/buildx/releases/download/${BUILDX_VER}/buildx-${BUILDX_VER}.linux-${buildx_arch}"
+curl --fail --silent --show-error -L "${buildx_url}" \
+  --output ~/.docker/cli-plugins/docker-buildx
 chmod a+x ~/.docker/cli-plugins/docker-buildx
 echo ::endgroup::
 
@@ -34,6 +51,7 @@ while read app version arch app_path ; do
   # Build with buildx
   docker buildx build \
     --no-cache \
+    --pull \
     --platform "linux/${platform_arch}" \
     --build-arg VERSION=$(echo "$version" |cut -d'-' -f1) \
     --build-arg VCS_REF=$(git rev-parse --short HEAD) \
@@ -49,7 +67,7 @@ while read app version arch app_path ; do
     HAS_ERROR=1
   fi
 
-done < "${workdir}/app_build.txt"
+done < "${workdir}/${build_file}"
 echo ::endgroup::
 
 # Clean & fix perm
