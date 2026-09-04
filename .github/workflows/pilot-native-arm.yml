@@ -1,25 +1,8 @@
-name: ci-api
+# Temporary workflow_dispatch-only pilot. Delete after native ARM CI is proven.
+name: pilot-native-arm
 
 on:
-  push:
-    paths:
-      - 'api*/**'
-      - '.github/workflows/ci-api.yml'
-      - '.github/actions/prepare-bareos-app/*'
-      - '.github/actions/build-bareos-app/*'
-      - '.github/actions/push-bareos-app/*'
-      - '.github/actions/test-bareos-app/*'
-  pull_request:
-    paths:
-      - 'api*/**'
-      - '.github/workflows/ci-api.yml'
-      - '.github/actions/prepare-bareos-app/*'
-      - '.github/actions/build-bareos-app/*'
-      - '.github/actions/push-bareos-app/*'
-      - '.github/actions/test-bareos-app/*'
   workflow_dispatch:
-  schedule:
-    - cron: '35 5 * * 0'
 
 jobs:
   prepare:
@@ -28,15 +11,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Prepare build file
+      - name: Prepare build files
         uses: ./.github/actions/prepare-bareos-app
         with:
-          bareos_app: api
+          bareos_app: director-pgsql
 
-      - name: Upload artifact
+      - name: Fix build directory ownership
+        # prepare-bareos-app runs as root inside a container, so build/ and
+        # its contents come out root-owned; reclaim them for the runner user
+        # before a plain (non-container) step tries to write new files there.
+        shell: bash
+        run: sudo chown -R "$(id -u):$(id -g)" build
+
+      - name: Limit pilot to Bareos 23 Alpine
+        shell: bash
+        run: |
+          awk '$2 == "23-alpine-pgsql"' build/app_build.txt \
+            > build/app_build-pilot.txt
+          mv build/app_build-pilot.txt build/app_build.txt
+          awk '$2 == "23-alpine-pgsql"' build/tag_build.txt \
+            > build/tag_build-pilot.txt
+          mv build/tag_build-pilot.txt build/tag_build.txt
+          for arch in amd64 arm64 armv7; do
+            awk -v arch="${arch}" '$3 == arch' build/app_build.txt \
+              > "build/app_build-${arch}.txt"
+          done
+
+      - name: Upload build metadata
         uses: actions/upload-artifact@v7
         with:
-          name: build-artifact-api-tmp
+          name: build-artifact-director-tmp
           path: build
 
   build:
@@ -59,7 +63,7 @@ jobs:
       - name: Download build metadata
         uses: actions/download-artifact@v8
         with:
-          name: build-artifact-api-tmp
+          name: build-artifact-director-tmp
           path: build
 
       - name: Set up QEMU for armv7
@@ -84,7 +88,7 @@ jobs:
       - name: Upload architecture tar files
         uses: actions/upload-artifact@v7
         with:
-          name: bareos-api-tars-${{ matrix.arch }}
+          name: bareos-director-tars-${{ matrix.arch }}
           path: build/*.tar
           if-no-files-found: error
 
@@ -93,9 +97,6 @@ jobs:
       contents: read
       security-events: write
     needs: build
-    if: |
-      (github.event_name == 'push' || github.event_name == 'schedule') &&
-      github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -104,13 +105,13 @@ jobs:
       - name: Download build metadata
         uses: actions/download-artifact@v8
         with:
-          name: build-artifact-api-tmp
+          name: build-artifact-director-tmp
           path: build
 
       - name: Download all architecture tar files
         uses: actions/download-artifact@v8
         with:
-          pattern: bareos-api-tars-*
+          pattern: bareos-director-tars-*
           merge-multiple: true
           path: build
 
@@ -136,14 +137,22 @@ jobs:
           done < build/app_build.txt
           exit "${has_error}"
 
-      - name: Load and push images
+      - name: Load and push pilot images
         uses: ./.github/actions/push-bareos-app
         with:
           docker_pass: ${{ secrets.DOCKER_PASS }}
           docker_user: ${{ secrets.DOCKER_USER }}
           registry: ${{ secrets.REGISTRY_URL }}
-          dockerhub_user: ${{ secrets.DOCKERHUB_USER }}
-          dockerhub_pass: ${{ secrets.DOCKERHUB_PASS }}
+          # Stay inside the existing registry project (production already
+          # pushes to ${REGISTRY_URL}/${github.repository}-<app>; a
+          # "pilot-<repo>" project was never created and every push/manifest
+          # call against it failed unauthorized in the first live run:
+          # https://github.com/dark-vex/bareos/actions/runs/33897954747).
+          # Suffixing the repo name with "-pilot" keeps this in the project
+          # that's known to exist while staying clearly distinct from real
+          # bareos-director tags.
+          image_prefix: >-
+            ${{ secrets.REGISTRY_URL }}/${{ github.repository }}-pilot
           wiz_client_id: ${{ secrets.WIZ_CLIENT_ID }}
           wiz_client_secret: ${{ secrets.WIZ_CLIENT_SECRET }}
 

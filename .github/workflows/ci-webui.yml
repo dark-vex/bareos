@@ -41,65 +41,58 @@ jobs:
 
   build:
     needs: prepare
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+          - arch: armv7
+            runner: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Download artifact
+      - name: Download build metadata
         uses: actions/download-artifact@v8
         with:
           name: build-artifact-webui-tmp
           path: build
 
-      - name: Set up QEMU
-        id: qemu
+      - name: Set up QEMU for armv7
+        if: matrix.arch == 'armv7'
         uses: docker/setup-qemu-action@v4
         with:
           image: tonistiigi/binfmt:latest
-          platforms: all
+          platforms: arm
 
       - name: Build images
         uses: ./.github/actions/build-bareos-app
         with:
           registry: ${{ secrets.REGISTRY_URL }}
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: build-artifact-webui
-          path: build
-
-  test:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Download artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: build-artifact-webui
-          path: build
-
-      - name: Set up QEMU
-        id: qemu
-        uses: docker/setup-qemu-action@v4
-        with:
-          image: tonistiigi/binfmt:latest
-          platforms: all
+          build_file: app_build-${{ matrix.arch }}.txt
 
       - name: Load and test images
         uses: ./.github/actions/test-bareos-app
         with:
           registry: ${{ secrets.REGISTRY_URL }}
+          build_file: app_build-${{ matrix.arch }}.txt
+
+      - name: Upload architecture tar files
+        uses: actions/upload-artifact@v7
+        with:
+          name: bareos-webui-tars-${{ matrix.arch }}
+          path: build/*.tar
+          if-no-files-found: error
 
   deploy:
     permissions:
       contents: read
       security-events: write
-    needs: test
+    needs: build
     if: |
       (github.event_name == 'push' || github.event_name == 'schedule') &&
       github.ref == 'refs/heads/master'
@@ -108,11 +101,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Download artifact
+      - name: Download build metadata
         uses: actions/download-artifact@v8
         with:
-          name: build-artifact-webui
+          name: build-artifact-webui-tmp
           path: build
+
+      - name: Download all architecture tar files
+        uses: actions/download-artifact@v8
+        with:
+          pattern: bareos-webui-tars-*
+          merge-multiple: true
+          path: build
+
+      - name: Verify all expected tar files
+        shell: bash
+        run: |
+          has_error=0
+          while read -r app version arch _; do
+            tag="${version}"
+            if [[ "${version}" =~ ^[0-9]+-alpine.*$ ]]; then
+              tag="${version}-${arch}"
+            fi
+            filename="bareos-${app}-${tag}.tar"
+            count=$(
+              find build -maxdepth 1 -type f -name "${filename}" |
+                wc -l
+            )
+            if [[ "${count}" -ne 1 ]]; then
+              echo "::error::Expected exactly one build/${filename};" \
+                "found ${count}"
+              has_error=1
+            fi
+          done < build/app_build.txt
+          exit "${has_error}"
 
       - name: Load and push images
         uses: ./.github/actions/push-bareos-app
