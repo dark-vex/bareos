@@ -34,6 +34,7 @@ while read app version arch app_path ; do
   # Build with buildx
   docker buildx build \
     --no-cache \
+    --pull \
     --platform "linux/${platform_arch}" \
     --build-arg VERSION=$(echo "$version" |cut -d'-' -f1) \
     --build-arg VCS_REF=$(git rev-parse --short HEAD) \

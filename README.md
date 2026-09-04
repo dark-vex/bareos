@@ -114,6 +114,16 @@ bareos-dir: CONFIG ERROR at lib/parse_conf_state_machine.cc:161
 Config error: Keyword "dbdriver" not permitted in this resource.
 ```
 
+**Existing deployments:** `docker-compose-alpine-pgsql.yml` (the default `docker-compose.yml`
+target) now pins Bareos 25 rather than 21. If you have an existing, volume-backed deployment
+from that file still running Bareos 21, pulling the new images and restarting will **not**
+auto-migrate your catalog config — the entrypoint's first-run sentinel file
+(`/etc/bareos/bareos-config.control`) only unpacks the bundled default config on a genuinely
+first run, so an existing `/data/bareos/config/director` volume keeps its Bareos 21 config as-is.
+You must manually apply any config changes required for the Bareos 21 → 25 jump yourself
+(including the `dbdriver` removal above, if not already done) before restarting the Director
+against the new image.
+
 ## Package Releases
 
 `download.bareos.org/current/` tracks the latest Bareos release and does not
@@ -178,9 +188,9 @@ Available compose files:
 |:--|:--|:--|
 | [docker-compose-alpine-pgsql.yml][compose-alpine-pgsql-href] | PostgreSQL | Alpine example stack |
 | [docker-compose-ubuntu-pgsql.yml][compose-ubuntu-pgsql-href] | PostgreSQL | Ubuntu example stack |
-| [docker-compose-alpine-mysql.yml][compose-alpine-mysql-href] | MySQL | legacy, Bareos 20 or older |
-| [docker-compose-alpine-mysql-v2.yml][compose-alpine-mysql-v2-href] | MySQL | legacy, Bareos 20 or older |
-| [docker-compose-ubuntu-mysql.yml][compose-ubuntu-mysql-href] | MySQL | legacy, Bareos 20 or older |
+| [docker-compose-alpine-mysql.yml][compose-alpine-mysql-href] | MySQL | legacy, Bareos 20 or older, unsupported |
+| [docker-compose-alpine-mysql-v2.yml][compose-alpine-mysql-v2-href] | MySQL | legacy, Bareos 20 or older, unsupported |
+| [docker-compose-ubuntu-mysql.yml][compose-ubuntu-mysql-href] | MySQL | legacy, Bareos 20 or older, unsupported |
 
 The compose examples store data under `/data/(bareos|mysql|pgsql)`.
 

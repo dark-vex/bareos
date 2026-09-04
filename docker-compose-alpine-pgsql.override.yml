@@ -1,5 +1,7 @@
 ## Override for smoke-testing a non-default Bareos version against docker-compose-alpine-pgsql.yml,
-## which is pinned to 21-alpine. Usage:
+## which is pinned to 25-alpine. The default here (23-alpine) is deliberately NOT 25-alpine:
+## its purpose is to exercise a distinct, still-supported version against the current default,
+## not to track it. Usage:
 ##
 ##   BAREOS_ALPINE_TAG=23-alpine docker compose \
 ##     -f docker-compose-alpine-pgsql.yml -f docker-compose-alpine-pgsql.override.yml up -d
