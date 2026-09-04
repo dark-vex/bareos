@@ -53,7 +53,7 @@ services:
       #- PGID=1500 # force bareos group ID
 
   bareos-webui:
-    image: darkvex/bareos-webui:25-alpine
+    image: barcus/bareos-webui:25-alpine
     ports:
       - 8080:9100
     environment:
