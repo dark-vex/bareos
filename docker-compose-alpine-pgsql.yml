@@ -67,9 +67,6 @@ services:
       - php-fpm
 
   php-fpm:
-    # darkvex/php-fpm-alpine does not exist on Docker Hub (this repo never
-    # publishes a php-fpm image of its own); barcus/php-fpm-alpine is the
-    # last known-working upstream this depends on. See README.md.
     image: barcus/php-fpm-alpine
     volumes:
       - /data/bareos/config/webui:/etc/bareos-webui
