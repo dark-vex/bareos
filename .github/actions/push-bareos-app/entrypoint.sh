@@ -14,6 +14,9 @@ export DOCKER_CLI_EXPERIMENTAL="enabled"
 export WIZ_CLIENT_ID="${INPUT_WIZ_CLIENT_ID}"
 export WIZ_CLIENT_SECRET="${INPUT_WIZ_CLIENT_SECRET}"
 
+# Fixed set of Wiz policies enforced on every container-image scan
+wiz_policies="[ddl] Default IaC policy,[ddl] Default SAST policy (Wiz CI/CD scan),[ddl] Default secrets policy,[ddl] Default sensitive data policy,[ddl] Default software license policy,[ddl] Default vulnerabilities policy"
+
 # Strip any http/https scheme prefix and trailing slash
 registry="${INPUT_REGISTRY#https://}"
 registry="${registry#http://}"
@@ -63,6 +66,7 @@ while read -r app version arch app_path ; do
   sarif_file="${workdir}/sarif/${app}-${build_tag}.sarif"
   if wizcli scan container-image "${remote_name}" \
       --dockerfile "${app_path}/Dockerfile" \
+      --policies="${wiz_policies}" \
       --sarif-output-file "${sarif_file}"; then
     # Directory uploads require a stable, unique category for every SARIF run.
     if ! jq --arg category "wiz/${app}-${build_tag}" \
