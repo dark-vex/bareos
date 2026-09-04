@@ -194,6 +194,14 @@ Available compose files:
 
 The compose examples store data under `/data/(bareos|mysql|pgsql)`.
 
+The three Alpine compose files also run a `php-fpm` sidecar for the WebUI,
+pinned to `barcus/php-fpm-alpine`. This repo doesn't build or publish that
+image itself; `darkvex/php-fpm-alpine` (the name a prior repo rename briefly
+pointed at) does not exist on Docker Hub, so `barcus/php-fpm-alpine` is the
+last known-working upstream. It's an unpinned floating tag from a
+third-party namespace this repo doesn't control — pin it to a digest if you
+need a reproducible build.
+
 ## Access
 
 Web UI:
