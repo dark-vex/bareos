@@ -3,8 +3,12 @@ description: 'Test Bareos docker images'
 author: 'dark-vex'
 inputs:
   registry:
-   description: 'Registry URL'
-   required: true
+    description: 'Registry URL'
+    required: true
+  build_file:
+    description: 'Build-list filename within the build directory'
+    required: false
+    default: 'app_build.txt'
 runs:
   using: 'docker'
   image: 'Dockerfile'

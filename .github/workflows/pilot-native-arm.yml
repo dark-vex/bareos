@@ -1,25 +1,8 @@
-name: ci-webui
+# Temporary workflow_dispatch-only pilot. Delete after native ARM CI is proven.
+name: pilot-native-arm
 
 on:
-  push:
-    paths:
-      - 'webui*/**'
-      - '.github/workflows/ci-webui.yml'
-      - '.github/actions/prepare-bareos-app/*'
-      - '.github/actions/build-bareos-app/*'
-      - '.github/actions/push-bareos-app/*'
-      - '.github/actions/test-bareos-app/*'
-  pull_request:
-    paths:
-      - 'webui*/**'
-      - '.github/workflows/ci-webui.yml'
-      - '.github/actions/prepare-bareos-app/*'
-      - '.github/actions/build-bareos-app/*'
-      - '.github/actions/push-bareos-app/*'
-      - '.github/actions/test-bareos-app/*'
   workflow_dispatch:
-  schedule:
-    - cron: '35 5 * * *'
 
 jobs:
   prepare:
@@ -28,15 +11,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Prepare build file
+      - name: Prepare build files
         uses: ./.github/actions/prepare-bareos-app
         with:
-          bareos_app: webui
+          bareos_app: director-pgsql
 
-      - name: Upload artifact
+      - name: Limit pilot to Bareos 23 Alpine
+        shell: bash
+        run: |
+          awk '$2 == "23-alpine-pgsql"' build/app_build.txt \
+            > build/app_build-pilot.txt
+          mv build/app_build-pilot.txt build/app_build.txt
+          awk '$2 == "23-alpine-pgsql"' build/tag_build.txt \
+            > build/tag_build-pilot.txt
+          mv build/tag_build-pilot.txt build/tag_build.txt
+          for arch in amd64 arm64 armv7; do
+            awk -v arch="${arch}" '$3 == arch' build/app_build.txt \
+              > "build/app_build-${arch}.txt"
+          done
+
+      - name: Upload build metadata
         uses: actions/upload-artifact@v7
         with:
-          name: build-artifact-webui-tmp
+          name: build-artifact-director-tmp
           path: build
 
   build:
@@ -59,7 +56,7 @@ jobs:
       - name: Download build metadata
         uses: actions/download-artifact@v4
         with:
-          name: build-artifact-webui-tmp
+          name: build-artifact-director-tmp
           path: build
 
       - name: Set up QEMU for armv7
@@ -84,7 +81,7 @@ jobs:
       - name: Upload architecture tar files
         uses: actions/upload-artifact@v7
         with:
-          name: bareos-webui-tars-${{ matrix.arch }}
+          name: bareos-director-tars-${{ matrix.arch }}
           path: build/*.tar
           if-no-files-found: error
 
@@ -93,9 +90,6 @@ jobs:
       contents: read
       security-events: write
     needs: build
-    if: |
-      (github.event_name == 'push' || github.event_name == 'schedule') &&
-      github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -104,13 +98,13 @@ jobs:
       - name: Download build metadata
         uses: actions/download-artifact@v4
         with:
-          name: build-artifact-webui-tmp
+          name: build-artifact-director-tmp
           path: build
 
       - name: Download all architecture tar files
         uses: actions/download-artifact@v4
         with:
-          pattern: bareos-webui-tars-*
+          pattern: bareos-director-tars-*
           merge-multiple: true
           path: build
 
@@ -136,14 +130,14 @@ jobs:
           done < build/app_build.txt
           exit "${has_error}"
 
-      - name: Load and push images
+      - name: Load and push pilot images
         uses: ./.github/actions/push-bareos-app
         with:
           docker_pass: ${{ secrets.DOCKER_PASS }}
           docker_user: ${{ secrets.DOCKER_USER }}
           registry: ${{ secrets.REGISTRY_URL }}
-          dockerhub_user: ${{ secrets.DOCKERHUB_USER }}
-          dockerhub_pass: ${{ secrets.DOCKERHUB_PASS }}
+          image_prefix: >-
+            ${{ secrets.REGISTRY_URL }}/pilot-${{ github.repository }}
           wiz_client_id: ${{ secrets.WIZ_CLIENT_ID }}
           wiz_client_secret: ${{ secrets.WIZ_CLIENT_SECRET }}
 

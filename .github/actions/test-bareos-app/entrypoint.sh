@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 workdir="${GITHUB_WORKSPACE}/build"
+build_file="${INPUT_BUILD_FILE:-app_build.txt}"
 docker_files=$(find "${workdir}/" -name "bareos-*.tar" 2>/dev/null)
 
 # Load Dockerfiles
@@ -80,7 +81,7 @@ while read app version arch path ; do
     echo "OK: ${app}:${build_tag} is Bareos v${short_img_version}"
   fi
 
-done < "${workdir}/app_build.txt"
+done < "${workdir}/${build_file}"
 echo ::endgroup::
 
 if [[ $HAS_ERROR -ne 0 ]]; then
