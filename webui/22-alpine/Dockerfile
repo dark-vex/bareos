@@ -3,7 +3,8 @@ FROM alpine:3.18
 
 LABEL maintainer="bareos@ddlns.net"
 
-RUN apk add --no-cache bareos-webui-nginx
+RUN apk upgrade --no-cache \
+ && apk add --no-cache bareos-webui-nginx
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod u+x /docker-entrypoint.sh
