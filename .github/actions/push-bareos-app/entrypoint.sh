@@ -41,12 +41,22 @@ for file in $docker_files; do
 done
 echo ::endgroup::
 
-# Connect to the primary registry
-docker login "${registry}" -u "${INPUT_DOCKER_USER}" -p "${INPUT_DOCKER_PASS}"
+HAS_ERROR=0
 
-# Connect to Docker Hub, if enabled
+# Connect to the primary registry
+if ! docker login "${registry}" -u "${INPUT_DOCKER_USER}" -p "${INPUT_DOCKER_PASS}"; then
+  echo "::error:: docker login failed for primary registry ${registry}"
+  exit 1
+fi
+
+# Connect to Docker Hub, if enabled. Docker Hub is optional, so a failure
+# here must not abort primary-registry pushes that would otherwise succeed.
 if [[ ${dockerhub_enabled} -eq 1 ]]; then
-  docker login -u "${INPUT_DOCKERHUB_USER}" -p "${INPUT_DOCKERHUB_PASS}"
+  if ! docker login -u "${INPUT_DOCKERHUB_USER}" -p "${INPUT_DOCKERHUB_PASS}"; then
+    echo "::error:: docker login failed for Docker Hub; skipping all Docker Hub pushes for this run"
+    HAS_ERROR=1
+    dockerhub_enabled=0
+  fi
 fi
 
 # Push tags and manfiests
@@ -83,6 +93,9 @@ while read -r app version arch app_path ; do
   fi
   if docker push "${remote_name}"; then
     wizcli tag "${remote_name}"
+  else
+    echo "::error:: docker push failed for ${remote_name}"
+    HAS_ERROR=1
   fi
   if [[ ${dockerhub_enabled} -eq 1 ]]; then
     dockerhub_name="${dockerhub_prefix}-${app}:${build_tag}"
@@ -90,7 +103,10 @@ while read -r app version arch app_path ; do
       rm_tags_dockerhub+=("${dockerhub_prefix}-${app}:${build_tag}")
     fi
     docker tag "${local_name}" "${dockerhub_name}"
-    docker push "${dockerhub_name}"
+    if ! docker push "${dockerhub_name}"; then
+      echo "::error:: docker push failed for ${dockerhub_name}"
+      HAS_ERROR=1
+    fi
   fi
 done < "${workdir}/app_build.txt"
 echo ::endgroup::
@@ -104,6 +120,9 @@ while read -r build_app s_tag t_tag ; do
       "${img_prefix}-${build_app}:${t_tag}"
     if docker push "${img_prefix}-${build_app}:${t_tag}"; then
       wizcli tag "${img_prefix}-${build_app}:${t_tag}"
+    else
+      echo "::error:: docker push failed for ${img_prefix}-${build_app}:${t_tag}"
+      HAS_ERROR=1
     fi
   fi
   # Create and push manifest for Alpine, from whichever per-arch tags were
@@ -117,16 +136,22 @@ while read -r build_app s_tag t_tag ; do
         '$1 == app && $2 == tag { print $3 }' "${workdir}/app_build.txt" | sort -u)
     if [[ ${#manifest_refs[@]} -eq 0 ]]; then
       echo "::error:: no per-arch tags found in app_build.txt for ${build_app}:${s_tag}, skipping manifest"
-    else
-      docker manifest create "${img_prefix}-${build_app}:${t_tag}" "${manifest_refs[@]}"
-      docker manifest push "${img_prefix}-${build_app}:${t_tag}"
+    elif ! docker manifest create "${img_prefix}-${build_app}:${t_tag}" "${manifest_refs[@]}"; then
+      echo "::error:: docker manifest create failed for ${img_prefix}-${build_app}:${t_tag}"
+      HAS_ERROR=1
+    elif ! docker manifest push "${img_prefix}-${build_app}:${t_tag}"; then
+      echo "::error:: docker manifest push failed for ${img_prefix}-${build_app}:${t_tag}"
+      HAS_ERROR=1
     fi
   fi
   if [[ ${dockerhub_enabled} -eq 1 ]]; then
     if [[ $s_tag =~ ^[a-z0-9]+-ubuntu.*$ ]]; then
       docker tag "${dockerhub_prefix}-${build_app}:${s_tag}" \
         "${dockerhub_prefix}-${build_app}:${t_tag}"
-      docker push "${dockerhub_prefix}-${build_app}:${t_tag}"
+      if ! docker push "${dockerhub_prefix}-${build_app}:${t_tag}"; then
+        echo "::error:: docker push failed for ${dockerhub_prefix}-${build_app}:${t_tag}"
+        HAS_ERROR=1
+      fi
     fi
     if [[ $s_tag =~ ^[a-z0-9]+-alpine.*$ ]]; then
       dockerhub_manifest_refs=()
@@ -136,9 +161,12 @@ while read -r build_app s_tag t_tag ; do
           '$1 == app && $2 == tag { print $3 }' "${workdir}/app_build.txt" | sort -u)
       if [[ ${#dockerhub_manifest_refs[@]} -eq 0 ]]; then
         echo "::error:: no per-arch tags found in app_build.txt for ${build_app}:${s_tag}, skipping Docker Hub manifest"
-      else
-        docker manifest create "${dockerhub_prefix}-${build_app}:${t_tag}" "${dockerhub_manifest_refs[@]}"
-        docker manifest push "${dockerhub_prefix}-${build_app}:${t_tag}"
+      elif ! docker manifest create "${dockerhub_prefix}-${build_app}:${t_tag}" "${dockerhub_manifest_refs[@]}"; then
+        echo "::error:: docker manifest create failed for ${dockerhub_prefix}-${build_app}:${t_tag}"
+        HAS_ERROR=1
+      elif ! docker manifest push "${dockerhub_prefix}-${build_app}:${t_tag}"; then
+        echo "::error:: docker manifest push failed for ${dockerhub_prefix}-${build_app}:${t_tag}"
+        HAS_ERROR=1
       fi
     fi
   fi
@@ -159,9 +187,15 @@ if [[ ${#rm_tags[@]} -gt 0 ]]; then
   done
 fi
 if [[ ${dockerhub_enabled} -eq 1 && ${#rm_tags_dockerhub[@]} -gt 0 ]]; then
+  # Left deliberately silent, out of scope for this fix: same class of
+  # silent-failure defect as the rest of this file, but not addressed here.
   docker run --rm lumir/remove-dockerhub-tag \
     --user "${INPUT_DOCKERHUB_USER}" --password "${INPUT_DOCKERHUB_PASS}" "${rm_tags_dockerhub[@]}"
 fi
 echo ::endgroup::
+
+if [[ ${HAS_ERROR} -ne 0 ]]; then
+  exit 1
+fi
 
 #EOF
