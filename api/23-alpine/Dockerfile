@@ -14,6 +14,8 @@ LABEL org.label-schema.schema-version="1.0" \
       org.label-schema.vcs-url="https://github.com/dark-vex/bareos" \
       org.label-schema.version=$VERSION
 
+RUN apk upgrade --no-cache
+
 RUN pip install --no-cache-dir --upgrade pip==22.0.4
 
 RUN adduser -D -u 1000 bareos

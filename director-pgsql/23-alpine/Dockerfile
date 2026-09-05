@@ -25,7 +25,8 @@ ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v2
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_ASSET=bareos-23-alpine3.21-aarch64.tar.gz
 
-RUN apk add --no-cache postgresql-client curl tzdata tar \
+RUN apk upgrade --no-cache \
+ && apk add --no-cache postgresql-client curl tzdata tar \
  && if [ "$TARGETARCH" = "arm64" ]; then \
       curl -fsSL "${BAREOS_APK_REPO}/releases/download/${BAREOS_APK_RELEASE}/${BAREOS_APK_ASSET}" -o /tmp/bareos-apks.tar.gz \
    && mkdir -p /tmp/bareos-apks \

@@ -13,7 +13,8 @@ ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v2
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_VER=24-alpine3.23
 
-RUN if [ "$TARGETARCH" = "amd64" ]; then \
+RUN apk upgrade --no-cache \
+ && if [ "$TARGETARCH" = "amd64" ]; then \
       apk add --no-cache bareos-webui-nginx; \
     else \
       case "$TARGETARCH/$TARGETVARIANT" in \
