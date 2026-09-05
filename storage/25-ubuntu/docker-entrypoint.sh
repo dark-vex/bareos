@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 
 bareos_sd_config="/etc/bareos/bareos-sd.d/director/bareos-dir.conf"
+bareos_sd_mon_config="/etc/bareos/bareos-sd.d/director/bareos-mon.conf"
 
 if [ ! -f /etc/bareos/bareos-config.control ]; then
   tar xfz /bareos-sd.tgz --backup=simple --suffix=.before-control
 
   # Update bareos-storage configs
   sed -i 's#Password = .*#Password = '\""${BAREOS_SD_PASSWORD}"\"'#' $bareos_sd_config
+
+  # Bareos >=24 rejects the empty Password the bundled bareos-mon.conf ships
+  # with (startup fails: "Empty Password not allowed in Resource bareos-mon").
+  sed -i 's#Password = .*#Password = '\""${BAREOS_SD_PASSWORD}"\"'#' $bareos_sd_mon_config
 
   # Control file
   touch /etc/bareos/bareos-config.control

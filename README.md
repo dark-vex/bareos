@@ -114,6 +114,16 @@ bareos-dir: CONFIG ERROR at lib/parse_conf_state_machine.cc:161
 Config error: Keyword "dbdriver" not permitted in this resource.
 ```
 
+**Existing deployments:** `docker-compose-alpine-pgsql.yml` (the default `docker-compose.yml`
+target) now pins Bareos 25 rather than 21. If you have an existing, volume-backed deployment
+from that file still running Bareos 21, pulling the new images and restarting will **not**
+auto-migrate your catalog config — the entrypoint's first-run sentinel file
+(`/etc/bareos/bareos-config.control`) only unpacks the bundled default config on a genuinely
+first run, so an existing `/data/bareos/config/director` volume keeps its Bareos 21 config as-is.
+You must manually apply any config changes required for the Bareos 21 → 25 jump yourself
+(including the `dbdriver` removal above, if not already done) before restarting the Director
+against the new image.
+
 ## Package Releases
 
 `download.bareos.org/current/` tracks the latest Bareos release and does not
@@ -178,11 +188,19 @@ Available compose files:
 |:--|:--|:--|
 | [docker-compose-alpine-pgsql.yml][compose-alpine-pgsql-href] | PostgreSQL | Alpine example stack |
 | [docker-compose-ubuntu-pgsql.yml][compose-ubuntu-pgsql-href] | PostgreSQL | Ubuntu example stack |
-| [docker-compose-alpine-mysql.yml][compose-alpine-mysql-href] | MySQL | legacy, Bareos 20 or older |
-| [docker-compose-alpine-mysql-v2.yml][compose-alpine-mysql-v2-href] | MySQL | legacy, Bareos 20 or older |
-| [docker-compose-ubuntu-mysql.yml][compose-ubuntu-mysql-href] | MySQL | legacy, Bareos 20 or older |
+| [docker-compose-alpine-mysql.yml][compose-alpine-mysql-href] | MySQL | legacy, Bareos 20 or older, unsupported |
+| [docker-compose-alpine-mysql-v2.yml][compose-alpine-mysql-v2-href] | MySQL | legacy, Bareos 20 or older, unsupported |
+| [docker-compose-ubuntu-mysql.yml][compose-ubuntu-mysql-href] | MySQL | legacy, Bareos 20 or older, unsupported |
 
 The compose examples store data under `/data/(bareos|mysql|pgsql)`.
+
+The three Alpine compose files also run a `php-fpm` sidecar for the WebUI,
+pinned to `barcus/php-fpm-alpine`. This repo doesn't build or publish that
+image itself; `darkvex/php-fpm-alpine` (the name a prior repo rename briefly
+pointed at) does not exist on Docker Hub, so `barcus/php-fpm-alpine` is the
+last known-working upstream. It's an unpinned floating tag from a
+third-party namespace this repo doesn't control — pin it to a digest if you
+need a reproducible build.
 
 ## Access
 
@@ -199,6 +217,15 @@ Bareos console:
 ```bash
 docker exec -it bareos-dir bconsole
 ```
+
+On Bareos 24+ images, `BAREOS_WEBUI_PASSWORD` is also reused as the
+Director's own local console password (what `bconsole` above authenticates
+with) and its tray-monitor console — those bundled resources ship with an
+empty password that Bareos now rejects at startup, and there's no separate
+`.env` variable for them. Unlike the WebUI's console, which is
+ACL-restricted (denies `.sql`, `configure`, `create`, `delete`, `purge`,
+etc.), the Director's local console has no ACL — treat this password as a
+full-privilege credential, not just a WebUI login.
 
 REST API docs:
 

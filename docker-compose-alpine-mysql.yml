@@ -1,4 +1,8 @@
 ## docker-compose Bareos Director/Storage/Client/webUI, PHP-FPM and MySQL Database based on Alpine
+##
+## LEGACY / UNSUPPORTED: pinned to Bareos 19 intentionally. Bareos dropped the MySQL catalog
+## backend after version 20 (director-mysql/ has no version above 20), so there is no newer
+## MySQL image to bump to. Do not change these image tags — see README.md.
 version: '3'
 services:
   bareos-dir:
@@ -58,7 +62,7 @@ services:
       - php-fpm
 
   php-fpm:
-    image: darkvex/php-fpm-alpine
+    image: barcus/php-fpm-alpine
     volumes:
       - /data/bareos/config/webui:/etc/bareos-webui
       - /data/bareos/data/webui:/usr/share/bareos-webui

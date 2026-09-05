@@ -37,7 +37,15 @@ jobs:
           sudo mkdir -p /data/mysql/data
           sudo mkdir -p /data/pgsql/data
           sudo chmod 777 /data/bareos /data/mysql /data/pgsql
-          sudo curl -s "https://raw.githubusercontent.com/bareos/bareos/Release/21.1.11/webui/install/bareos/bareos-dir.d/profile/webui-admin.conf" \
+          # webui-admin.conf's path moved (webui/install/bareos/... -> core/src/defaultconfigs/...)
+          # and gained a "Plugin Options ACL" directive between Bareos 21 and 25, so each leg
+          # fetches the profile matching the Bareos major it actually runs.
+          if [ "${{ matrix.module }}" == "alpine-pgsql" ]; then
+            profile_url="https://raw.githubusercontent.com/bareos/bareos/Release/25.0.3/core/src/defaultconfigs/bareos-dir.d/profile/webui-admin.conf"
+          else
+            profile_url="https://raw.githubusercontent.com/bareos/bareos/Release/21.1.11/webui/install/bareos/bareos-dir.d/profile/webui-admin.conf"
+          fi
+          sudo curl -s "$profile_url" \
             -o /data/bareos/config/director/bareos-dir.d/profile/webui-admin.conf
 
       - name: Run docker-compose
