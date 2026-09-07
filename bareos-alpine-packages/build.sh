@@ -8,7 +8,7 @@ ARTIFACTS_DIR="/artifacts/bareos-${BAREOS_VERSION}-alpine${ALPINE_TAG}/aarch64"
 
 echo "==> Cloning aports ${ALPINE_BRANCH} community/bareos ..."
 git clone --depth 1 --branch "${ALPINE_BRANCH}" --filter=blob:none --sparse \
-    https://gitlab.alpinelinux.org/alpine/aports.git /tmp/aports
+    https://github.com/alpinelinux/aports.git /tmp/aports
 cd /tmp/aports
 git sparse-checkout set community/bareos
 
