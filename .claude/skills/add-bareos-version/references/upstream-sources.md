@@ -83,9 +83,9 @@ exist for all five (21, 22, 23, 24, 25). PyPI availability is necessary but
 |---------|----------|-------------|---------------|
 | 21 | `>=21*,<22*` | ✓ 21.1.9 on PyPI | ✗ fails — see note |
 | 22 | `>=22*,<23*` | ✓ 22.1.5 on PyPI | ✗ fails — see note |
-| 23 | `>=23*,<24*` | ✓ 23.1.1 on PyPI | ✓ imports cleanly |
-| 24 | `>=24*,<25*` | ✓ 24.0.10 on PyPI | ✓ imports cleanly |
-| 25 | `>=25*,<26*` | ✓ 25.1.0 on PyPI | ✓ imports cleanly |
+| 23 | `>=23,<24` | ✓ 23.1.1 on PyPI | ✓ imports cleanly |
+| 24 | `>=24,<25` | ✓ 24.0.11 on PyPI | ✓ imports cleanly |
+| 25 | `>=25,<26` | ✓ 25.1.1 on PyPI | ✓ imports cleanly |
 
 **api component note**: `pip install` succeeding is not enough — verified
 2026-09-03 via `docker run --rm <image> python -c "import bareos_restapi"`.
@@ -102,6 +102,44 @@ release those two can't parse; 23.x+ import cleanly. CI's own test step
 verify the pip spec resolves via `https://pypi.org/pypi/bareos-restapi/json`,
 build it locally, **and** run the import check above — don't trust a
 successful `pip install` alone.
+
+**Base image / pip-spec syntax (re-verified 2026-09-08)**: `api/23-alpine`,
+`api/24-alpine`, `api/25-alpine` now build `FROM python:3.14-alpine`
+(bumped from `python:3.10-alpine` — Python 3.10 reaches upstream EOL
+2026-10-31, and 3.14 also carries the fix for CVE-2026-4519, a stdlib
+`webbrowser` command-injection bug fixed in 3.13.13/3.14.4 that scanners flag
+against 3.10.x — confirmed via the Debian security tracker, not just the
+plan that proposed this bump. CVE-2026-4519 also had a follow-up incomplete-
+mitigation bug, CVE-2026-4786, fully fixed starting 3.14.5rc1; the image here
+resolves to 3.14.7, so both are covered. The `pip install --upgrade
+pip==22.0.4` line was dropped —
+the base image's bundled pip is already current. Dropping that pin surfaced
+a real bug: the wildcard version-specifier syntax these Dockerfiles used
+(`>=23*,<24*`) is not valid PEP 440 and modern pip (the kind bundled with any
+current base image, independent of the Python version) rejects it outright
+with `ERROR: Invalid requirement`. Old pip 22.0.4 tolerated it via a legacy
+parser. Fixed by dropping the wildcards (`>=23,<24`) — confirmed to resolve
+to the identical version (e.g. 23.1.1) as the old syntax did under pip
+22.0.4, since no 23.x/24.x/25.x release on PyPI uses a non-standard version
+string. **`api/21-alpine` and `api/22-alpine` still use the old `>=21*,<22*`
+wildcard syntax and were deliberately left untouched** (already excluded
+from CI, already broken on import, would get zero verification from this
+spike) — fix their pip spec too if either is ever un-blocked. All three
+bumped versions were verified (build, `import bareos_restapi`, `which
+uvicorn`, and a live `uvicorn --reload` serving `/docs`) on amd64 and arm64;
+`api/23-alpine` was also verified the same way on armv7 under QEMU (the
+tightest musllinux wheel-coverage constraint, since it's the only api
+version CI builds for that arch) — build succeeded with only `pyyaml`
+compiling from source (`cp314-cp314-linux_armv7l` wheel, ~5s). That wheel
+tag looks like a compiled C extension but isn't: no gcc/musl-dev is present
+in the base image, and `yaml.__with_libyaml__` reads `False` at runtime on
+that armv7 image — confirmed pure-Python fallback, not a real build-toolchain
+risk. No other package needed a source build. `pydantic-core` (Rust-backed)
+had a prebuilt `musllinux_1_1_armv7l` wheel for `cp314`. `watchfiles` was
+never a concern —
+these Dockerfiles install bare `uvicorn`, not `uvicorn[standard]`, so
+`--reload` uses uvicorn's `StatReload` fallback and never pulls in
+`watchfiles` at all.
 
 ## Verification commands
 

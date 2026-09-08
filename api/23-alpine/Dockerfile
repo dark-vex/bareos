@@ -1,4 +1,4 @@
-FROM python:3.10-alpine
+FROM python:3.14-alpine
 
 LABEL maintainer="bareos@ddlns.net"
 
@@ -16,14 +16,12 @@ LABEL org.label-schema.schema-version="1.0" \
 
 RUN apk upgrade --no-cache
 
-RUN pip install --no-cache-dir --upgrade pip==22.0.4
-
 RUN adduser -D -u 1000 bareos
 USER 1000
 WORKDIR /home/bareos
 
 ENV PATH="/home/bareos/.local/bin:${PATH}"
-RUN pip install --no-cache-dir "bareos-restapi>=23*,<24*"
+RUN pip install --no-cache-dir "bareos-restapi>=23,<24"
 
 COPY --chown=bareos docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod a+x /docker-entrypoint.sh
