@@ -80,7 +80,7 @@ two versions regardless of who builds the package; see
 | `24-alpine`, `24`, `alpine`, `latest` |
 | `23-alpine` |
 
-All `api/N-alpine` images are built from `python:3.10-alpine` and install the
+All `api/N-alpine` images are built from `python:3.14-alpine` and install the
 `bareos-restapi` PyPI package pinned to that Bareos version; only the latest
 version (currently 24) also gets the bare `24`, `alpine`, and `latest` tags.
 
