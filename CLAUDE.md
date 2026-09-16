@@ -112,7 +112,6 @@ The CI uses reusable composite actions in `.github/actions/` (prepare, build, pu
   | 25             | 3.24        | ✓     | ✓        | ✗      |
   | 24             | 3.23        | ✓     | ✓        | ✗      |
   | 23             | 3.21        | ✓     | ✓        | ✓      |
-  | 22             | 3.18        | ✓     | ✓        | ✗      |
 
   amd64 (and arm/v7 for 23 only) install straight from Alpine's official
   `community` repo. arm64/v8 for 23/24/25, and arm/v7 for none beyond 23,
@@ -122,8 +121,21 @@ The CI uses reusable composite actions in `.github/actions/` (prepare, build, pu
   (`time_t`/`static_assert` mismatch in the filedaemon Python plugin on 32-bit
   ARM, confirmed via real `abuild -r` spikes). Do not add it back without
   re-verifying that bug is fixed upstream.
-- Current active versions: 22–25 (Ubuntu and Alpine)
+- Current active versions: 23–25 (Ubuntu and Alpine)
 - MySQL backend was dropped in Bareos 21+; `director-mysql/` only goes up to version 20
+
+### Deprecated versions
+
+Bareos 22 was dropped from active maintenance. Its `*/22-*` directories
+remain in the tree for reference only and are excluded from CI (see
+`.github/actions/prepare-bareos-app/entrypoint.sh`). The existing
+`darkvex/bareos-*:22-*`
+tags (Docker Hub and the private registry) remain published as-is but will
+**not** receive further rebuilds, base-image bumps, or CVE patches. Upgrade
+to v23, v24, or v25 for actively maintained images — do not point users at
+upstream `barcus/bareos` as an alternative for v22: its own source tree tops
+out at v21 and its Docker Hub `22-alpine`/`22-alpine-pgsql` tags haven't been
+pushed in over a year, with no `22-ubuntu` variant ever published there.
 
 ### Upstream package availability
 
@@ -139,7 +151,7 @@ The CI uses reusable composite actions in `.github/actions/` (prepare, build, pu
 | 25             | `current/xUbuntu_24.04/`        | Alpine 3.24 (25.0.3)|
 
 Use `bareos-packages/` to build `.deb` packages from source for Ubuntu versions
-22–24. Alpine's own `community/bareos` package tracks upstream releases and
+23–24. Alpine's own `community/bareos` package tracks upstream releases and
 needs no source build for amd64 (or arm/v7 on 23, the only version upstream
 ships it for) — only the arm64/v8 gap (every version) needs
 `bareos-alpine-packages/`. Once packages are published as GitHub Releases, use

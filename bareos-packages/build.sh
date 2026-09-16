@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BAREOS_BRANCH="${BAREOS_BRANCH:?BAREOS_BRANCH env var required (e.g. bareos-22)}"
+BAREOS_BRANCH="${BAREOS_BRANCH:?BAREOS_BRANCH env var required (e.g. bareos-23)}"
 BAREOS_REF="${BAREOS_REF:-${BAREOS_BRANCH}}"
 UBUNTU_CODENAME="${UBUNTU_CODENAME:?UBUNTU_CODENAME env var required (e.g. jammy)}"
 ARTIFACTS_DIR="/artifacts/${BAREOS_BRANCH}/${UBUNTU_CODENAME}"

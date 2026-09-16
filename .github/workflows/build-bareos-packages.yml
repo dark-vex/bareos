@@ -21,9 +21,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - bareos_branch: bareos-22
-            bareos_ref: Release/22.1.8
-            ubuntu_codename: jammy
           - bareos_branch: bareos-23
             bareos_ref: Release/23.1.7
             ubuntu_codename: jammy
@@ -67,9 +64,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - bareos_branch: bareos-22
-            bareos_ref: Release/22.1.8
-            ubuntu_codename: jammy
           - bareos_branch: bareos-23
             bareos_ref: Release/23.1.7
             ubuntu_codename: jammy
