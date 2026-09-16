@@ -27,8 +27,7 @@ Alpine version, and `linux/arm/v7` is available for Bareos 23 only:
 | 25 | Alpine 3.24 | ✅ | ✅ | ❌ |
 | 24 | Alpine 3.23 | ✅ | ✅ | ❌ |
 | 23 | Alpine 3.21 | ✅ | ✅ | ✅ |
-| 22 | Alpine 3.18 | ✅ | ✅ | ❌ |
-| 21 and older | — | ✅ | — | — |
+| 22 and older | — | ✅ | — | — |
 
 amd64 and, for Bareos 23, arm/v7 install Bareos straight from Alpine's
 official `community` repository. arm64/v8 for Bareos 23/24/25 (and arm/v7 for
@@ -47,11 +46,9 @@ two versions regardless of who builds the package; see
 | PostgreSQL | `25-ubuntu-pgsql`, `25-ubuntu`, `25`, `ubuntu` |
 | PostgreSQL | `24-ubuntu-pgsql`, `24-ubuntu`, `24` |
 | PostgreSQL | `23-ubuntu-pgsql`, `23-ubuntu`, `23` |
-| PostgreSQL | `22-ubuntu-pgsql`, `22-ubuntu`, `22` |
 | PostgreSQL | `25-alpine-pgsql`, `25-alpine`, `alpine`, `latest` |
 | PostgreSQL | `24-alpine-pgsql`, `24-alpine` |
 | PostgreSQL | `23-alpine-pgsql`, `23-alpine` |
-| PostgreSQL | `22-alpine-pgsql`, `22-alpine` |
 | PostgreSQL | `21-ubuntu-pgsql`, `21-ubuntu`, `21` |
 | PostgreSQL | `21-alpine-pgsql`, `21-alpine` |
 | PostgreSQL | `20-ubuntu-pgsql`, `20-ubuntu`, `20` |
@@ -64,11 +61,10 @@ two versions regardless of who builds the package; see
 |:--|:--|
 | Ubuntu 24.04 | `25-ubuntu`, `25`, `ubuntu` |
 | Ubuntu 24.04 | `24-ubuntu`, `24` |
-| Ubuntu 22.04 | `23-ubuntu`, `23`, `22-ubuntu`, `22` |
+| Ubuntu 22.04 | `23-ubuntu`, `23` |
 | Alpine 3.24 | `25-alpine`, `alpine`, `latest` |
 | Alpine 3.23 | `24-alpine` |
 | Alpine 3.21 | `23-alpine` |
-| Alpine 3.18 | `22-alpine` |
 | Ubuntu 20.04 | `21-ubuntu`, `21`, `20-ubuntu`, `20` |
 | Alpine | `21-alpine`, `20-alpine` |
 
@@ -89,6 +85,21 @@ tree but not built or published: those `bareos-restapi` releases pull in a
 `pydantic` version their model code can't parse (fails on import with
 `PydanticSchemaGenerationError`), while 23+ import cleanly.
 
+## Deprecated Tags
+
+Bareos 22 has been dropped from active maintenance. The tags below remain
+published and pullable exactly as they are today, but will **not** be
+rebuilt, re-tagged, or patched for new CVEs. Use Bareos 23, 24, or 25 for
+actively maintained images.
+
+| image | tags |
+|:--|:--|
+| `bareos-director` | `22-ubuntu-pgsql`, `22-ubuntu`, `22`, `22-alpine-pgsql`, `22-alpine` |
+| `bareos-client` | `22-ubuntu`, `22`, `22-alpine` |
+| `bareos-storage` | `22-ubuntu`, `22`, `22-alpine` |
+| `bareos-webui` | `22-ubuntu`, `22`, `22-alpine` |
+| `bareos-api` | none — Bareos 22 was never built or published for `bareos-api` |
+
 ## Version Support
 
 | Bareos version | Ubuntu image | Alpine image | API image | Notes |
@@ -96,7 +107,7 @@ tree but not built or published: those `bareos-restapi` releases pull in a
 | 25 | `25-ubuntu` on Ubuntu 24.04 | `25-alpine` on Alpine 3.24 | `25-alpine` | Ubuntu from `download.bareos.org/current/`; Alpine amd64+arm64/v8 |
 | 24 | `24-ubuntu` on Ubuntu 24.04 | `24-alpine` on Alpine 3.23 | `24-alpine` (latest) | Ubuntu from GitHub package release; Alpine amd64+arm64/v8 |
 | 23 | `23-ubuntu` on Ubuntu 22.04 | `23-alpine` on Alpine 3.21 | `23-alpine` | Ubuntu from GitHub package release; Alpine amd64+arm64/v8+arm/v7 |
-| 22 | `22-ubuntu` on Ubuntu 22.04 | `22-alpine` on Alpine 3.18 | — | Ubuntu uses GitHub package release; Alpine amd64+arm64/v8; `bareos-restapi` 22.x fails to import (see `bareos-api` tags above) |
+| 22 | `22-ubuntu` on Ubuntu 22.04 | `22-alpine` on Alpine 3.18 | — | Deprecated: existing tags remain published but frozen, no further rebuilds or CVE patches (see Deprecated Tags above); `bareos-restapi` 22.x fails to import (see `bareos-api` tags above) |
 | 21 | `21-ubuntu` | `21-alpine` | — | Upstream versioned repo / Alpine package; `bareos-restapi` 21.x fails to import (see `bareos-api` tags above) |
 | 20 | `20-ubuntu` | `20-alpine` | — | Last version with MySQL backend; `bareos-restapi` was never published for 20 |
 
@@ -127,16 +138,15 @@ against the new image.
 ## Package Releases
 
 `download.bareos.org/current/` tracks the latest Bareos release and does not
-provide pinned 22, 23, or 24 Ubuntu repositories. This repo builds pinned `.deb`
+provide pinned 23 or 24 Ubuntu repositories. This repo builds pinned `.deb`
 packages from upstream Bareos release tags and publishes them as GitHub Release
 assets.
 
-The Ubuntu 22/23/24 Dockerfiles consume the package release
+The Ubuntu 23/24 Dockerfiles consume the package release
 `pkg/bareos-packages-v1`:
 
 | asset | used by |
 |:--|:--|
-| `bareos-22-jammy.tar.gz` | `22-ubuntu` component images |
 | `bareos-23-jammy.tar.gz` | `23-ubuntu` component images |
 | `bareos-24-noble.tar.gz` | `24-ubuntu` component images |
 
@@ -264,7 +274,7 @@ docker build -t bareos-webui:24-ubuntu webui/24-ubuntu
 docker build -t bareos-api:24-alpine api/24-alpine
 ```
 
-For Ubuntu 22/23/24 images, the package release assets must exist before the
+For Ubuntu 23/24 images, the package release assets must exist before the
 build can download them.
 
 ## Links

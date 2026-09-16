@@ -11,7 +11,6 @@ Versioned repos exist only for Bareos 20 and 21. This builder covers the gap:
 
 | Artifact bucket | Upstream ref     | Ubuntu codename | Published by upstream? |
 |-----------------|------------------|-----------------|------------------------|
-| bareos-22       | Release/22.1.8   | jammy (22.04)   | no — build from source |
 | bareos-23       | Release/23.1.7   | jammy (22.04)   | no — build from source |
 | bareos-24       | Release/24.0.10  | noble (24.04)   | no — build from source |
 | bareos-25       | current          | jammy / noble   | yes — `current/`       |
@@ -22,26 +21,26 @@ Versioned repos exist only for Bareos 20 and 21. This builder covers the gap:
 # Build the jammy builder image
 docker build -f Dockerfile.builder.jammy -t bareos-builder:jammy .
 
-# Build Bareos 22 packages for jammy (takes 20–40 min on 4 cores)
+# Build Bareos 23 packages for jammy (takes 20–40 min on 4 cores)
 mkdir -p ../artifacts
 docker run --rm \
   -v "$(pwd)/../artifacts:/artifacts" \
-  -e BAREOS_BRANCH=bareos-22 \
-  -e BAREOS_REF=Release/22.1.8 \
+  -e BAREOS_BRANCH=bareos-23 \
+  -e BAREOS_REF=Release/23.1.7 \
   -e UBUNTU_CODENAME=jammy \
   bareos-builder:jammy
 
-# Packages land in: ../artifacts/bareos-22/jammy/*.deb
-ls ../artifacts/bareos-22/jammy/
+# Packages land in: ../artifacts/bareos-23/jammy/*.deb
+ls ../artifacts/bareos-23/jammy/
 ```
 
-Replace `jammy`, `bareos-22`, and `Release/22.1.8` with the matching matrix values for other variants.
+Replace `jammy`, `bareos-23`, and `Release/23.1.7` with the matching matrix values for other variants.
 
 ## CI / GitHub Actions
 
 Workflow: `.github/workflows/build-bareos-packages.yml`
 
-- **Manual trigger** (`workflow_dispatch`): builds all three matrix cells.
+- **Manual trigger** (`workflow_dispatch`): builds every matrix cell.
 - **Scheduled**: Sundays at 04:00 UTC to rebuild the pinned upstream release tags.
 - **On push** to `bareos-packages/**`: rebuilds on builder file changes.
 
@@ -66,7 +65,7 @@ Once a release exists, component Dockerfiles can install from it:
 ARG BAREOS_PKG_RELEASE=pkg%2Fbareos-packages-v1
 ARG BAREOS_PKG_REPO=https://github.com/Dark-Vex/bareos
 
-ADD ${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/bareos-22-jammy.tar.gz /tmp/bareos-pkgs.tar.gz
+ADD ${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/bareos-23-jammy.tar.gz /tmp/bareos-pkgs.tar.gz
 
 RUN mkdir -p /tmp/bareos-debs \
  && tar -xzf /tmp/bareos-pkgs.tar.gz -C /tmp/bareos-debs \

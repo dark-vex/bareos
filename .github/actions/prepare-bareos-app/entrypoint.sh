@@ -26,15 +26,16 @@ for file in $docker_files; do
   app_dir=$(echo "$file" |cut -d'/' -f1)
   version_dir=$(echo "$file" |cut -d'/' -f2)
   version=$(echo "$version_dir" |cut -d'-' -f1)
-  # Skip versions no longer available upstream
-  if [[ "$version" -le 21 ]]; then
-    continue
-  fi
-  # bareos-restapi 22.x pulls in a pydantic release its model code can't
-  # parse (PydanticSchemaGenerationError on import, verified via a local
-  # build+import spike 2026-09-03); 23.x+ import cleanly. Skip until
-  # upstream fixes it or we pin deps in that Dockerfile.
-  if [ "${app}" == 'api' ] && [[ "$version" -le 22 ]]; then
+  # Versions <=21 are no longer available upstream; version 22 is still
+  # published upstream (download.bareos.org/current/ and Alpine's community
+  # repo) but has been deprecated by this fork (existing 22-* tags stay
+  # published, frozen — see CLAUDE.md's Version Support section). api
+  # additionally used to skip through 22 on its own: bareos-restapi 22.x
+  # pulls in a pydantic release its model code can't parse
+  # (PydanticSchemaGenerationError on import, verified via a local
+  # build+import spike 2026-09-03); 23.x+ import cleanly. That's now
+  # subsumed by the general <=22 skip below.
+  if [[ "$version" -le 22 ]]; then
     continue
   fi
   base_img=$(echo "$version_dir" |cut -d'-' -f2)

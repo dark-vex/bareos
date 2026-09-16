@@ -8,7 +8,7 @@ Last verified: 2026-06-01
 |---------------|-------------|------------|-------------|--------|
 | 20 | ubuntu:focal (20.04) | `http://download.bareos.org/bareos/release/20/xUbuntu_20.04/Release.key` | `http://download.bareos.org/bareos/release/20/xUbuntu_20.04/` | ✓ versioned |
 | 21 | ubuntu:focal (20.04) | `http://download.bareos.org/bareos/release/21/xUbuntu_20.04/Release.key` | `http://download.bareos.org/bareos/release/21/xUbuntu_20.04/` | ✓ versioned |
-| 22 | ubuntu:jammy (22.04) | `http://download.bareos.org/current/xUbuntu_22.04/Release.key` | `http://download.bareos.org/current/xUbuntu_22.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-04) |
+| 22 | ubuntu:jammy (22.04) | `http://download.bareos.org/current/xUbuntu_22.04/Release.key` | `http://download.bareos.org/current/xUbuntu_22.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-04); **deprecated by this fork** — existing `22-*` tags stay published but frozen, no longer built or patched (see CLAUDE.md's Version Support section) |
 | 23 | — | — | — | ✗ no versioned repo; current/ does not pin to 23 |
 | 24 | ubuntu:noble (24.04) | `http://download.bareos.org/current/xUbuntu_24.04/Release.key` | `http://download.bareos.org/current/xUbuntu_24.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-04) |
 | 25 | ubuntu:noble (24.04) | `http://download.bareos.org/current/xUbuntu_24.04/Release.key` | `http://download.bareos.org/current/xUbuntu_24.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-06); 25-ubuntu images built from this |
@@ -26,7 +26,7 @@ against the live Alpine CDN (see Verification commands below).
 |---------------|-----------|----------------|:---:|:---:|:---:|---|
 | 20 | alpine:3.15 | bareos-20.x | ✓ | — | — | yes |
 | 21 | alpine:3.17 | bareos-21.x | ✓ | — | — | yes |
-| 22 | alpine:3.18 | bareos-22.0.3-r1 | ✓ | — | ✓ | yes |
+| 22 | alpine:3.18 | bareos-22.0.3-r1 | ✓ | — | ✓ | yes (deprecated by this fork — frozen, see CLAUDE.md) |
 | 23 | alpine:3.21 | bareos-23.0.4-r1 | ✓ | ✓ (upstream) | ✗ needs custom build | yes |
 | 24 | alpine:3.23 | bareos-24.0.7-r0 | ✓ | ✗ needs custom build | ✗ needs custom build | no — folded into base `bareos` |
 | 25 | alpine:3.24 | bareos-25.0.3-r0 | ✓ | ✗ needs custom build | ✗ needs custom build | no — folded into base `bareos` |
@@ -95,8 +95,12 @@ release those two can't parse; 23.x+ import cleanly. CI's own test step
 (`.github/actions/test-bareos-app`) only checks `pip show` output, so it does
 **not** catch this — the import must be checked manually. `api/21-alpine` and
 `api/22-alpine` exist in the source tree but are excluded from CI
-(`.github/actions/prepare-bareos-app/entrypoint.sh` skips `api` versions
-`<= 22`) until this is fixed upstream or the transitive deps are pinned.
+(`.github/actions/prepare-bareos-app/entrypoint.sh` now skips *all* apps for
+versions `<= 22` — version 22 was separately deprecated by this fork, which
+folded the api-specific `<= 22` skip into that general one; the pydantic
+failure remains the standalone reason `api` would need to keep skipping 22
+even if the general deprecation skip were ever narrowed) until this is fixed
+upstream or the transitive deps are pinned.
 `latest_api` in that same script tracks the api version that gets the bare
 `N`/`alpine`/`latest` tags — currently `24`. Before generating a new api dir:
 verify the pip spec resolves via `https://pypi.org/pypi/bareos-restapi/json`,
@@ -155,25 +159,16 @@ docker run --rm alpine:<tag> sh -c "apk update -q 2>/dev/null && apk search -e b
 curl -sL "https://pypi.org/simple/bareos-restapi/" | grep -Eo 'bareos.restapi-[0-9]+\.[0-9]+\.[0-9]+' | sed 's/bareos.restapi-//'
 ```
 
-## Missing and buildable as of 2026-08-22
+## Still missing (as of 2026-09-16)
+
+Every version/flavor combination identified as "missing and buildable" in an
+earlier pass of this table (23/24/25-alpine, 23/24-ubuntu, 25-ubuntu, for
+director-pgsql/storage/client/webui) has since been generated and built —
+check the component directories directly rather than this file for current
+coverage. What's still genuinely unbuildable:
 
 | Component | Target | Buildable? | Reason |
 |-----------|--------|------------|--------|
-| director-pgsql | 22-ubuntu | ✓ | Ubuntu 22.04 + current/ |
-| director-pgsql / storage / client / webui | 23-alpine | ✓ (amd64, armv7); arm64 pending spike | Alpine 3.21, upstream `bareos-23.0.4-r1`; arm64 needs a custom-built `.apk` |
-| director-pgsql / storage / client / webui | 24-alpine | ✓ (amd64 only); armv7 + arm64 pending spike | Alpine 3.23, upstream `bareos-24.0.7-r0`; armv7 and arm64 both need custom-built `.apk`s |
-| director-pgsql / storage / client / webui | 23/24-ubuntu | ✓ | Built from source via `bareos-packages/`, see its README |
-| director-pgsql | 25-ubuntu | ✓ | Ubuntu 24.04 + current/ |
-| director-pgsql / storage / client / webui | 25-alpine | ✓ (amd64 only); armv7 + arm64 pending spike | Alpine 3.24, upstream `bareos-25.0.3-r0`; armv7 and arm64 both need custom-built `.apk`s |
-| storage | 25-ubuntu | ✓ | Ubuntu 24.04 + current/ |
-| client | 25-ubuntu | ✓ | Ubuntu 24.04 + current/ |
-| webui | 25-ubuntu | ✓ | Ubuntu 24.04 + current/ |
 | api | 20-alpine | ✗ | bareos-restapi<21 not on PyPI |
-| api | 23-alpine | ✗ | No upstream source |
-| api | 25-alpine | ✗ | No upstream source |
 | director-mysql | 21+ | ✗ | MySQL backend dropped in Bareos 21+ |
-
-"Pending spike" arches install nothing until the Step 0 aarch64/armv7 build spike (see the
-`add-bareos-version` plan) confirms a custom `.apk` can actually be built and a builder
-pipeline publishes it — do not generate a Dockerfile that assumes an arch's `.apk` exists
-without that artifact actually being available.
+| `*/22-*` | any new build | ✗ (by policy) | Bareos 22 deprecated by this fork — existing dirs stay, but excluded from CI; see CLAUDE.md's Version Support section |
