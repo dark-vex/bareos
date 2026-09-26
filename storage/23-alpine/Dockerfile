@@ -24,12 +24,14 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v2
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_ASSET=bareos-23-alpine3.21-aarch64.tar.gz
+ARG BAREOS_APK_SHA256_AARCH64=a7799df41c615626200de87c4bdae9411ca555338d25caea13f1fa7db2a219be
 
 RUN apk upgrade --no-cache \
  && apk add --no-cache tar \
  && if [ "$TARGETARCH" = "arm64" ]; then \
       apk add --no-cache curl \
    && curl -fsSL "${BAREOS_APK_REPO}/releases/download/${BAREOS_APK_RELEASE}/${BAREOS_APK_ASSET}" -o /tmp/bareos-apks.tar.gz \
+   && echo "${BAREOS_APK_SHA256_AARCH64}  /tmp/bareos-apks.tar.gz" | sha256sum -c - \
    && mkdir -p /tmp/bareos-apks \
    && tar -xzf /tmp/bareos-apks.tar.gz -C /tmp/bareos-apks \
    && apk add --no-cache --allow-untrusted /tmp/bareos-apks/bareos-[0-9]*.apk /tmp/bareos-apks/bareos-libs-*.apk /tmp/bareos-apks/bareos-storage-*.apk \

@@ -28,6 +28,7 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v2
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_VER=24-alpine3.23
+ARG BAREOS_APK_SHA256_AARCH64=8b7dd2797704bd792c49f59e3e20b29753b08b8c42ef9e4905d8d34323640b4d
 
 RUN apk upgrade --no-cache \
  && apk add --no-cache openssh-client tar shadow bash su-exec \
@@ -35,12 +36,13 @@ RUN apk upgrade --no-cache \
       apk add --no-cache bareos-filedaemon; \
     else \
       case "$TARGETARCH/$TARGETVARIANT" in \
-        arm64/*) bareos_arch=aarch64 ;; \
+        arm64/*) bareos_arch=aarch64; bareos_sha256="${BAREOS_APK_SHA256_AARCH64}" ;; \
         arm/v7) echo "armv7 is not supported for this Bareos version: upstream bug (time_t static_assert in the filedaemon Python plugin) blocks the custom build, see bareos-alpine-packages/README.md" >&2; exit 1 ;; \
         *) echo "unsupported arch $TARGETARCH/$TARGETVARIANT for custom bareos apk" >&2; exit 1 ;; \
       esac \
    && apk add --no-cache curl \
    && curl -fsSL "${BAREOS_APK_REPO}/releases/download/${BAREOS_APK_RELEASE}/bareos-${BAREOS_APK_VER}-${bareos_arch}.tar.gz" -o /tmp/bareos-apks.tar.gz \
+   && echo "${bareos_sha256}  /tmp/bareos-apks.tar.gz" | sha256sum -c - \
    && mkdir -p /tmp/bareos-apks \
    && tar -xzf /tmp/bareos-apks.tar.gz -C /tmp/bareos-apks \
    && apk add --no-cache --allow-untrusted /tmp/bareos-apks/bareos-[0-9]*.apk /tmp/bareos-apks/bareos-libs-*.apk /tmp/bareos-apks/bareos-filedaemon-*.apk \
