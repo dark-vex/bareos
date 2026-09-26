@@ -44,7 +44,7 @@ echo ::endgroup::
 HAS_ERROR=0
 
 # Connect to the primary registry
-if ! docker login "${registry}" -u "${INPUT_DOCKER_USER}" -p "${INPUT_DOCKER_PASS}"; then
+if ! printf '%s' "${INPUT_DOCKER_PASS}" | docker login "${registry}" -u "${INPUT_DOCKER_USER}" --password-stdin; then
   echo "::error:: docker login failed for primary registry ${registry}"
   exit 1
 fi
@@ -52,7 +52,7 @@ fi
 # Connect to Docker Hub, if enabled. Docker Hub is optional, so a failure
 # here must not abort primary-registry pushes that would otherwise succeed.
 if [[ ${dockerhub_enabled} -eq 1 ]]; then
-  if ! docker login -u "${INPUT_DOCKERHUB_USER}" -p "${INPUT_DOCKERHUB_PASS}"; then
+  if ! printf '%s' "${INPUT_DOCKERHUB_PASS}" | docker login -u "${INPUT_DOCKERHUB_USER}" --password-stdin; then
     echo "::error:: docker login failed for Docker Hub; skipping all Docker Hub pushes for this run"
     HAS_ERROR=1
     dockerhub_enabled=0
@@ -177,8 +177,8 @@ echo ::endgroup::
 echo ::group::Clean
 if [[ ${#rm_tags[@]} -gt 0 ]]; then
   for tag in "${rm_tags[@]}"; do
-    if docker run --rm ghcr.io/regclient/regctl:v0.11.6 tag delete "${tag}" \
-        --host "reg=${registry},user=${INPUT_DOCKER_USER},pass=${INPUT_DOCKER_PASS},tls=enabled" \
+    if regctl tag delete "${tag}" \
+        --host "reg=${registry},tls=enabled" \
         --ignore-missing; then
       echo "removed: ${tag}"
     else

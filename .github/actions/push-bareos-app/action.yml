@@ -37,7 +37,3 @@ inputs:
 runs:
   using: 'docker'
   image: 'Dockerfile'
-  args:
-    - ${{ inputs.docker_user }}
-    - ${{ inputs.docker_pass }}
-    - ${{ inputs.registry }}
