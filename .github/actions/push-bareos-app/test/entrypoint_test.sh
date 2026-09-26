@@ -135,6 +135,7 @@ FAKE
 #!/usr/bin/env bash
 echo "wizcli $*" >> "${CALL_LOG}"
 if [[ "${1:-}" == "scan" ]]; then
+  image_ref="$3"
   prev=""
   for arg in "$@"; do
     if [[ "${prev}" == "--sarif-output-file" ]]; then
@@ -142,6 +143,9 @@ if [[ "${1:-}" == "scan" ]]; then
     fi
     prev="${arg}"
   done
+  if [[ -n "${FAIL_WIZ_SCAN:-}" && "${image_ref}" == *"${FAIL_WIZ_SCAN}"* ]]; then
+    exit 1
+  fi
 fi
 exit 0
 FAKE
@@ -150,10 +154,39 @@ FAKE
   cat > "${BIN_DIR}/jq" <<'FAKE'
 #!/usr/bin/env bash
 echo "jq $*" >> "${CALL_LOG}"
+if [[ "${1:-}" == "-n" ]]; then
+  echo '{}'
+  exit 0
+fi
+if [[ "$*" == *"access_token"* ]]; then
+  cat >/dev/null
+  echo "jwt"
+  exit 0
+fi
 last="${@: -1}"
 cat "${last}"
 FAKE
   chmod +x "${BIN_DIR}/jq"
+
+  cat > "${BIN_DIR}/curl" <<'FAKE'
+#!/usr/bin/env bash
+echo "curl $*" >> "${CALL_LOG}"
+if [[ "$*" == *"@-"* ]]; then
+  cat >/dev/null
+fi
+case "$*" in
+  *"hub.docker.com/v2/auth/token"*)
+    echo '{"token":"jwt","access_token":"jwt"}'
+    exit 0
+    ;;
+  *"-X DELETE"*)
+    echo "200"
+    exit 0
+    ;;
+esac
+exit 0
+FAKE
+  chmod +x "${BIN_DIR}/curl"
 
   cat > "${BIN_DIR}/regctl" <<'FAKE'
 #!/usr/bin/env bash
@@ -166,6 +199,7 @@ FAKE
 reset_env() {
   unset INPUT_DOCKERHUB_USER INPUT_DOCKERHUB_PASS
   unset FAIL_PRIMARY_LOGIN FAIL_DOCKERHUB_LOGIN FAIL_PUSH_MATCH FAIL_MANIFEST_MATCH
+  unset FAIL_WIZ_SCAN
 }
 
 base_env() {
@@ -217,9 +251,15 @@ scenario_all_success() {
   assert_line "docker manifest push darkvex/bareos-director-pgsql:24-alpine"
   assert_line "regctl tag delete test-registry/bareos-director-pgsql:24-alpine-amd64 --host reg=registry.example.com,tls=enabled --ignore-missing"
   assert_line "regctl tag delete test-registry/bareos-director-pgsql:24-alpine-arm64 --host reg=registry.example.com,tls=enabled --ignore-missing"
+  assert_line "curl --fail -sS -H Content-Type: application/json --data-binary @- https://hub.docker.com/v2/auth/token"
+  assert_line "curl -sS -o /dev/null -w %{http_code} -X DELETE -H @[^ ]+ https://hub.docker.com/v2/repositories/darkvex/bareos-director-pgsql/tags/24-alpine-amd64/"
+  assert_line "curl -sS -o /dev/null -w %{http_code} -X DELETE -H @[^ ]+ https://hub.docker.com/v2/repositories/darkvex/bareos-director-pgsql/tags/24-alpine-arm64/"
 
-  if grep -v "^docker run --rm lumir" "${CALL_LOG}" | grep -qwE "pass|dhpass"; then
+  if grep -qwE "pass|dhpass" "${CALL_LOG}"; then
     fail "secret found in argv logged to CALL_LOG"
+  fi
+  if grep -qw "jwt" "${CALL_LOG}"; then
+    fail "JWT value found in argv logged to CALL_LOG"
   fi
 }
 
@@ -306,11 +346,43 @@ scenario_dockerhub_login_failure() {
   fi
 }
 
+scenario_wiz_scan_failure() {
+  echo "--- scenario (f): wiz scan failure blocks publish ---"
+  setup_fixture
+  reset_env
+  base_env
+  export INPUT_DOCKERHUB_USER="dhuser"
+  export INPUT_DOCKERHUB_PASS="dhpass"
+  export FAIL_WIZ_SCAN="24-alpine-amd64"
+
+  run_entrypoint
+  local rc=$?
+
+  assert_eq "${rc}" "1" "exit code"
+  assert_no_line "docker push test-registry/bareos-director-pgsql:24-alpine-amd64"
+  assert_no_line "docker push darkvex/bareos-director-pgsql:24-alpine-amd64"
+  assert_line "docker push test-registry/bareos-director-pgsql:24-alpine-arm64"
+  assert_line "docker push darkvex/bareos-director-pgsql:24-alpine-arm64"
+  assert_line "docker push test-registry/bareos-director-pgsql:24-ubuntu"
+  assert_line "docker push darkvex/bareos-director-pgsql:24-ubuntu"
+  assert_line "docker push test-registry/bareos-director-pgsql:24"
+  assert_line "docker push darkvex/bareos-director-pgsql:24"
+  assert_line "docker manifest create test-registry/bareos-director-pgsql:24-alpine test-registry/bareos-director-pgsql:24-alpine-arm64"
+  assert_line "docker manifest push test-registry/bareos-director-pgsql:24-alpine"
+  assert_line "docker manifest create darkvex/bareos-director-pgsql:24-alpine darkvex/bareos-director-pgsql:24-alpine-arm64"
+  assert_line "docker manifest push darkvex/bareos-director-pgsql:24-alpine"
+  assert_no_line "regctl tag delete test-registry/bareos-director-pgsql:24-alpine-amd64 --host reg=registry.example.com,tls=enabled --ignore-missing"
+  assert_line "regctl tag delete test-registry/bareos-director-pgsql:24-alpine-arm64 --host reg=registry.example.com,tls=enabled --ignore-missing"
+  assert_no_line "curl -sS -o /dev/null -w %{http_code} -X DELETE -H @[^ ]+ https://hub.docker.com/v2/repositories/darkvex/bareos-director-pgsql/tags/24-alpine-amd64/"
+  assert_line "curl -sS -o /dev/null -w %{http_code} -X DELETE -H @[^ ]+ https://hub.docker.com/v2/repositories/darkvex/bareos-director-pgsql/tags/24-alpine-arm64/"
+}
+
 scenario_all_success
 scenario_single_failed_push
 scenario_failed_manifest_create
 scenario_primary_login_failure
 scenario_dockerhub_login_failure
+scenario_wiz_scan_failure
 
 if [[ "${FAILURES}" -eq 0 ]]; then
   echo "All scenarios passed."

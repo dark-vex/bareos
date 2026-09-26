@@ -4,6 +4,7 @@ workdir="${GITHUB_WORKSPACE}/build"
 docker_files=$(find "${workdir}/" -name "bareos-*.tar" 2>/dev/null)
 rm_tags=()
 rm_tags_dockerhub=()
+declare -A blocked_build_tags
 
 mkdir -p "${workdir}/sarif"
 
@@ -67,17 +68,20 @@ while read -r app version arch app_path ; do
   re='^[0-9]+-alpine.*$'
   if [[ $version =~ $re ]] ; then
     build_tag="${version}-${arch}"
-    rm_tags+=("${img_prefix}-${app}:${build_tag}")
   fi
   # Re-tag local image with registry-qualified name then push
   local_name="bareos-${app}:${build_tag}"
   remote_name="${img_prefix}-${app}:${build_tag}"
   docker tag "${local_name}" "${remote_name}"
   sarif_file="${workdir}/sarif/${app}-${build_tag}.sarif"
-  if wizcli scan container-image "${remote_name}" \
+  wiz_scan_ok=1
+  if ! wizcli scan container-image "${remote_name}" \
       --dockerfile "${app_path}/Dockerfile" \
       --policies="${wiz_policies}" \
       --sarif-output-file "${sarif_file}"; then
+    wiz_scan_ok=0
+  fi
+  if [[ -s "${sarif_file}" ]]; then
     # Directory uploads require a stable, unique category for every SARIF run.
     if ! jq --arg category "wiz/${app}-${build_tag}" \
         '.runs |= (to_entries | map(.value.automationDetails.id = ($category + "-" + (.key | tostring) + "/") | .value))' \
@@ -88,24 +92,32 @@ while read -r app version arch app_path ; do
       mv "${sarif_file}.tmp" "${sarif_file}"
     fi
   else
-    echo "::warning:: Wiz scan failed for ${remote_name}; image publishing will continue"
     rm -f "${sarif_file}" "${sarif_file}.tmp"
   fi
-  if docker push "${remote_name}"; then
-    wizcli tag "${remote_name}"
-  else
-    echo "::error:: docker push failed for ${remote_name}"
+  if [[ ${wiz_scan_ok} -eq 0 ]]; then
+    echo "::error:: Wiz scan failed for ${remote_name}; not publishing"
     HAS_ERROR=1
-  fi
-  if [[ ${dockerhub_enabled} -eq 1 ]]; then
-    dockerhub_name="${dockerhub_prefix}-${app}:${build_tag}"
+    blocked_build_tags["${app}|${build_tag}"]=1
+  else
     if [[ $version =~ $re ]] ; then
-      rm_tags_dockerhub+=("${dockerhub_prefix}-${app}:${build_tag}")
+      rm_tags+=("${img_prefix}-${app}:${build_tag}")
     fi
-    docker tag "${local_name}" "${dockerhub_name}"
-    if ! docker push "${dockerhub_name}"; then
-      echo "::error:: docker push failed for ${dockerhub_name}"
+    if docker push "${remote_name}"; then
+      wizcli tag "${remote_name}"
+    else
+      echo "::error:: docker push failed for ${remote_name}"
       HAS_ERROR=1
+    fi
+    if [[ ${dockerhub_enabled} -eq 1 ]]; then
+      dockerhub_name="${dockerhub_prefix}-${app}:${build_tag}"
+      if [[ $version =~ $re ]] ; then
+        rm_tags_dockerhub+=("${dockerhub_prefix}-${app}:${build_tag}")
+      fi
+      docker tag "${local_name}" "${dockerhub_name}"
+      if ! docker push "${dockerhub_name}"; then
+        echo "::error:: docker push failed for ${dockerhub_name}"
+        HAS_ERROR=1
+      fi
     fi
   fi
 done < "${workdir}/app_build.txt"
@@ -116,13 +128,17 @@ while read -r build_app s_tag t_tag ; do
   img_prefix="${INPUT_IMAGE_PREFIX:-${registry}/${GITHUB_REPOSITORY}}"
   # Push additional tags for Ubuntu
   if [[ $s_tag =~ ^[a-z0-9]+-ubuntu.*$ ]]; then
-    docker tag "${img_prefix}-${build_app}:${s_tag}" \
-      "${img_prefix}-${build_app}:${t_tag}"
-    if docker push "${img_prefix}-${build_app}:${t_tag}"; then
-      wizcli tag "${img_prefix}-${build_app}:${t_tag}"
+    if [[ -n "${blocked_build_tags["${build_app}|${s_tag}"]:-}" ]]; then
+      echo "::warning:: skipping ${img_prefix}-${build_app}:${t_tag}, source ${build_app}:${s_tag} was blocked by Wiz scan"
     else
-      echo "::error:: docker push failed for ${img_prefix}-${build_app}:${t_tag}"
-      HAS_ERROR=1
+      docker tag "${img_prefix}-${build_app}:${s_tag}" \
+        "${img_prefix}-${build_app}:${t_tag}"
+      if docker push "${img_prefix}-${build_app}:${t_tag}"; then
+        wizcli tag "${img_prefix}-${build_app}:${t_tag}"
+      else
+        echo "::error:: docker push failed for ${img_prefix}-${build_app}:${t_tag}"
+        HAS_ERROR=1
+      fi
     fi
   fi
   # Create and push manifest for Alpine, from whichever per-arch tags were
@@ -131,7 +147,9 @@ while read -r build_app s_tag t_tag ; do
   if [[ $s_tag =~ ^[a-z0-9]+-alpine.*$ ]]; then
     manifest_refs=()
     while read -r arch; do
-      manifest_refs+=("${img_prefix}-${build_app}:${s_tag}-${arch}")
+      if [[ -z "${blocked_build_tags["${build_app}|${s_tag}-${arch}"]:-}" ]]; then
+        manifest_refs+=("${img_prefix}-${build_app}:${s_tag}-${arch}")
+      fi
     done < <(awk -v app="${build_app}" -v tag="${s_tag}" \
         '$1 == app && $2 == tag { print $3 }' "${workdir}/app_build.txt" | sort -u)
     if [[ ${#manifest_refs[@]} -eq 0 ]]; then
@@ -146,17 +164,21 @@ while read -r build_app s_tag t_tag ; do
   fi
   if [[ ${dockerhub_enabled} -eq 1 ]]; then
     if [[ $s_tag =~ ^[a-z0-9]+-ubuntu.*$ ]]; then
-      docker tag "${dockerhub_prefix}-${build_app}:${s_tag}" \
-        "${dockerhub_prefix}-${build_app}:${t_tag}"
-      if ! docker push "${dockerhub_prefix}-${build_app}:${t_tag}"; then
-        echo "::error:: docker push failed for ${dockerhub_prefix}-${build_app}:${t_tag}"
-        HAS_ERROR=1
+      if [[ -z "${blocked_build_tags["${build_app}|${s_tag}"]:-}" ]]; then
+        docker tag "${dockerhub_prefix}-${build_app}:${s_tag}" \
+          "${dockerhub_prefix}-${build_app}:${t_tag}"
+        if ! docker push "${dockerhub_prefix}-${build_app}:${t_tag}"; then
+          echo "::error:: docker push failed for ${dockerhub_prefix}-${build_app}:${t_tag}"
+          HAS_ERROR=1
+        fi
       fi
     fi
     if [[ $s_tag =~ ^[a-z0-9]+-alpine.*$ ]]; then
       dockerhub_manifest_refs=()
       while read -r arch; do
-        dockerhub_manifest_refs+=("${dockerhub_prefix}-${build_app}:${s_tag}-${arch}")
+        if [[ -z "${blocked_build_tags["${build_app}|${s_tag}-${arch}"]:-}" ]]; then
+          dockerhub_manifest_refs+=("${dockerhub_prefix}-${build_app}:${s_tag}-${arch}")
+        fi
       done < <(awk -v app="${build_app}" -v tag="${s_tag}" \
           '$1 == app && $2 == tag { print $3 }' "${workdir}/app_build.txt" | sort -u)
       if [[ ${#dockerhub_manifest_refs[@]} -eq 0 ]]; then
@@ -187,10 +209,40 @@ if [[ ${#rm_tags[@]} -gt 0 ]]; then
   done
 fi
 if [[ ${dockerhub_enabled} -eq 1 && ${#rm_tags_dockerhub[@]} -gt 0 ]]; then
-  # Left deliberately silent, out of scope for this fix: same class of
-  # silent-failure defect as the rest of this file, but not addressed here.
-  docker run --rm lumir/remove-dockerhub-tag \
-    --user "${INPUT_DOCKERHUB_USER}" --password "${INPUT_DOCKERHUB_PASS}" "${rm_tags_dockerhub[@]}"
+  dockerhub_login_response_file=$(mktemp)
+  chmod 600 "${dockerhub_login_response_file}"
+  if ! (set -o pipefail
+        jq -n '{identifier: env.INPUT_DOCKERHUB_USER, secret: env.INPUT_DOCKERHUB_PASS}' \
+          | curl --fail -sS -H 'Content-Type: application/json' --data-binary @- \
+              https://hub.docker.com/v2/auth/token) > "${dockerhub_login_response_file}"; then
+    echo "::warning:: failed to authenticate to Docker Hub API for tag deletion"
+    rm -f "${dockerhub_login_response_file}"
+  else
+    dockerhub_token=$(jq -r '.access_token' < "${dockerhub_login_response_file}")
+    rm -f "${dockerhub_login_response_file}"
+    if [[ -z "${dockerhub_token}" || "${dockerhub_token}" == "null" ]]; then
+      echo "::warning:: failed to authenticate to Docker Hub API for tag deletion"
+    else
+      dockerhub_auth_header_file=$(mktemp)
+      chmod 600 "${dockerhub_auth_header_file}"
+      printf 'Authorization: Bearer %s\n' "${dockerhub_token}" > "${dockerhub_auth_header_file}"
+      for tag in "${rm_tags_dockerhub[@]}"; do
+        ns_repo="${tag%%:*}"
+        dh_tag_name="${tag##*:}"
+        dh_namespace="${ns_repo%%/*}"
+        dh_repo="${ns_repo#*/}"
+        dockerhub_delete_status=$(curl -sS -o /dev/null -w '%{http_code}' -X DELETE \
+          -H @"${dockerhub_auth_header_file}" \
+          "https://hub.docker.com/v2/repositories/${dh_namespace}/${dh_repo}/tags/${dh_tag_name}/")
+        if [[ "${dockerhub_delete_status}" =~ ^(200|202|204|404)$ ]]; then
+          echo "removed: ${tag}"
+        else
+          echo "::warning:: failed to delete Docker Hub tag ${tag}"
+        fi
+      done
+      rm -f "${dockerhub_auth_header_file}"
+    fi
+  fi
 fi
 echo ::endgroup::
 
