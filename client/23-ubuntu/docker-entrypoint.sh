@@ -26,8 +26,8 @@ if [ $(id -u) = '0' ]; then
   find /etc/bareos ! -user ${BAREOS_DAEMON_USER} -exec chown ${BAREOS_DAEMON_USER}:${BAREOS_DAEMON_GROUP} {} \;
   chown -R ${BAREOS_DAEMON_USER}:${BAREOS_DAEMON_GROUP} /var/lib/bareos /var/log/bareos
 
-  # Gosu
-  [ "${BAREOS_DAEMON_USER}" != 'root' ] && exec gosu "${BAREOS_DAEMON_USER}" "$BASH_SOURCE" "$@"
+  # Drop privileges
+  [ "${BAREOS_DAEMON_USER}" != 'root' ] && HOME="$(getent passwd "${BAREOS_DAEMON_USER}" | cut -d: -f6)" exec setpriv --reuid="${BAREOS_DAEMON_USER}" --regid="${BAREOS_DAEMON_GROUP}" --init-groups "$BASH_SOURCE" "$@"
 fi
 
 exec "$@"

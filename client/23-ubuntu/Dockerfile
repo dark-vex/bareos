@@ -31,7 +31,7 @@ RUN apt-get update -qq \
  && curl -fsSL "${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/${BAREOS_PKG_ASSET}" -o /tmp/bareos-pkgs.tar.gz \
  && tar -xzf /tmp/bareos-pkgs.tar.gz -C /tmp/bareos-debs \
  && apt-get install -qq -y --no-install-recommends \
-    gosu tzdata default-mysql-client postgresql-client \
+    tzdata default-mysql-client postgresql-client \
     /tmp/bareos-debs/bareos-bconsole_*.deb \
     /tmp/bareos-debs/bareos-common_*.deb \
     /tmp/bareos-debs/bareos-client_*.deb \

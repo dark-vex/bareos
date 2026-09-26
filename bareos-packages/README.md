@@ -71,7 +71,7 @@ RUN mkdir -p /tmp/bareos-debs \
  && tar -xzf /tmp/bareos-pkgs.tar.gz -C /tmp/bareos-debs \
  && apt-get update -qq \
  && apt-get install -qq -y --no-install-recommends \
-    tzdata gosu postgresql-client \
+    tzdata postgresql-client \
     /tmp/bareos-debs/bareos-common_*.deb \
     /tmp/bareos-debs/bareos-filedaemon_*.deb \
     /tmp/bareos-debs/bareos-tools_*.deb \

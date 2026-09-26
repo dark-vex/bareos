@@ -31,7 +31,7 @@ RUN apt-get update -qq \
       > /etc/apt/sources.list.d/bareos.list \
  && apt-get update -qq \
  && apt-get install -qq -y --no-install-recommends \
-    gosu tzdata default-mysql-client postgresql-client \
+    tzdata default-mysql-client postgresql-client \
     bareos-bconsole \
     bareos-common \
     bareos-client \
