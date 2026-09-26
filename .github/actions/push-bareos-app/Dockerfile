@@ -8,6 +8,7 @@ RUN apk update \
  && chmod +x /usr/local/bin/wizcli \
  && rm -rf /var/cache/apk/*
 
+COPY --from=ghcr.io/regclient/regctl:v0.11.6 /regctl /usr/local/bin/regctl
 COPY entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

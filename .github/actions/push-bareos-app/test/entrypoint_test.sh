@@ -102,11 +102,10 @@ cmd="$1"
 case "${cmd}" in
   login)
     shift
+    cat >/dev/null
     if [[ "${1:-}" != -* ]]; then
-      # docker login <registry> -u ... -p ...  (primary registry)
       [[ "${FAIL_PRIMARY_LOGIN:-0}" -eq 1 ]] && exit 1
     else
-      # docker login -u ... -p ...  (Docker Hub, no positional registry)
       [[ "${FAIL_DOCKERHUB_LOGIN:-0}" -eq 1 ]] && exit 1
     fi
     exit 0
@@ -155,6 +154,13 @@ last="${@: -1}"
 cat "${last}"
 FAKE
   chmod +x "${BIN_DIR}/jq"
+
+  cat > "${BIN_DIR}/regctl" <<'FAKE'
+#!/usr/bin/env bash
+echo "regctl $*" >> "${CALL_LOG}"
+exit 0
+FAKE
+  chmod +x "${BIN_DIR}/regctl"
 }
 
 reset_env() {
@@ -209,6 +215,12 @@ scenario_all_success() {
   assert_line "docker manifest push test-registry/bareos-director-pgsql:24-alpine"
   assert_line "docker manifest create darkvex/bareos-director-pgsql:24-alpine darkvex/bareos-director-pgsql:24-alpine-amd64 darkvex/bareos-director-pgsql:24-alpine-arm64"
   assert_line "docker manifest push darkvex/bareos-director-pgsql:24-alpine"
+  assert_line "regctl tag delete test-registry/bareos-director-pgsql:24-alpine-amd64 --host reg=registry.example.com,tls=enabled --ignore-missing"
+  assert_line "regctl tag delete test-registry/bareos-director-pgsql:24-alpine-arm64 --host reg=registry.example.com,tls=enabled --ignore-missing"
+
+  if grep -v "^docker run --rm lumir" "${CALL_LOG}" | grep -qwE "pass|dhpass"; then
+    fail "secret found in argv logged to CALL_LOG"
+  fi
 }
 
 scenario_single_failed_push() {
@@ -281,7 +293,7 @@ scenario_dockerhub_login_failure() {
 
   # Fails only at the very end via HAS_ERROR, not immediately.
   assert_eq "${rc}" "1" "exit code"
-  assert_line "docker login -u dhuser -p dhpass"
+  assert_line "docker login -u dhuser --password-stdin"
   # Primary-registry work must proceed as if Docker Hub were never enabled.
   assert_line "docker push test-registry/bareos-director-pgsql:24-ubuntu"
   assert_line "docker push test-registry/bareos-director-pgsql:24-alpine-amd64"

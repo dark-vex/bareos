@@ -19,8 +19,8 @@ ENV BAREOS_DAEMON_USER=bareos
 ENV BAREOS_DAEMON_GROUP=bareos
 ENV DEBIAN_FRONTEND=noninteractive
 
-ARG BAREOS_KEY=http://download.bareos.org/current/xUbuntu_24.04/Release.key
-ARG BAREOS_REPO=http://download.bareos.org/current/xUbuntu_24.04/
+ARG BAREOS_KEY=https://download.bareos.org/current/xUbuntu_24.04/Release.key
+ARG BAREOS_REPO=https://download.bareos.org/current/xUbuntu_24.04/
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 

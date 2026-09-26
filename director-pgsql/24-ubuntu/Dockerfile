@@ -54,6 +54,7 @@ RUN apt-get update -qq \
 RUN tar czf /bareos-dir.tgz /etc/bareos
 
 COPY --chmod=755 webhook-notify /usr/local/bin/webhook-notify
+COPY webui-admin.conf admin.conf.example /usr/local/share/bareos/
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod u+x /docker-entrypoint.sh

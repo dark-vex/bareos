@@ -6,12 +6,12 @@ Last verified: 2026-06-01
 
 | Bareos version | Ubuntu base | BAREOS_KEY | BAREOS_REPO | Status |
 |---------------|-------------|------------|-------------|--------|
-| 20 | ubuntu:focal (20.04) | `http://download.bareos.org/bareos/release/20/xUbuntu_20.04/Release.key` | `http://download.bareos.org/bareos/release/20/xUbuntu_20.04/` | ✓ versioned |
-| 21 | ubuntu:focal (20.04) | `http://download.bareos.org/bareos/release/21/xUbuntu_20.04/Release.key` | `http://download.bareos.org/bareos/release/21/xUbuntu_20.04/` | ✓ versioned |
-| 22 | ubuntu:jammy (22.04) | `http://download.bareos.org/current/xUbuntu_22.04/Release.key` | `http://download.bareos.org/current/xUbuntu_22.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-04); **deprecated by this fork** — existing `22-*` tags stay published but frozen, no longer built or patched (see CLAUDE.md's Version Support section) |
+| 20 | ubuntu:focal (20.04) | `https://download.bareos.org/bareos/release/20/xUbuntu_20.04/Release.key` | `https://download.bareos.org/bareos/release/20/xUbuntu_20.04/` | ✓ versioned |
+| 21 | ubuntu:focal (20.04) | `https://download.bareos.org/bareos/release/21/xUbuntu_20.04/Release.key` | `https://download.bareos.org/bareos/release/21/xUbuntu_20.04/` | ✓ versioned |
+| 22 | ubuntu:jammy (22.04) | `https://download.bareos.org/current/xUbuntu_22.04/Release.key` | `https://download.bareos.org/current/xUbuntu_22.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-04); **deprecated by this fork** — existing `22-*` tags stay published but frozen, no longer built or patched (see CLAUDE.md's Version Support section) |
 | 23 | — | — | — | ✗ no versioned repo; current/ does not pin to 23 |
-| 24 | ubuntu:noble (24.04) | `http://download.bareos.org/current/xUbuntu_24.04/Release.key` | `http://download.bareos.org/current/xUbuntu_24.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-04) |
-| 25 | ubuntu:noble (24.04) | `http://download.bareos.org/current/xUbuntu_24.04/Release.key` | `http://download.bareos.org/current/xUbuntu_24.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-06); 25-ubuntu images built from this |
+| 24 | ubuntu:noble (24.04) | `https://download.bareos.org/current/xUbuntu_24.04/Release.key` | `https://download.bareos.org/current/xUbuntu_24.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-04) |
+| 25 | ubuntu:noble (24.04) | `https://download.bareos.org/current/xUbuntu_24.04/Release.key` | `https://download.bareos.org/current/xUbuntu_24.04/` | ⚠ current/ installs latest Bareos (25.x as of 2026-06); 25-ubuntu images built from this |
 
 **Note**: For v22+, `current/` always tracks the latest Bareos release. The directory name reflects Ubuntu version, not Bareos version.
 
@@ -149,8 +149,8 @@ these Dockerfiles install bare `uvicorn`, not `uvicorn[standard]`, so
 
 ```bash
 # Ubuntu: check a specific version URL
-curl -sfI "http://download.bareos.org/bareos/release/<v>/xUbuntu_20.04/Release.key" && echo "YES" || echo "NO"
-curl -sfI "http://download.bareos.org/current/xUbuntu_22.04/Release.key" && echo "YES" || echo "NO"
+curl -sfI "https://download.bareos.org/bareos/release/<v>/xUbuntu_20.04/Release.key" && echo "YES" || echo "NO"
+curl -sfI "https://download.bareos.org/current/xUbuntu_22.04/Release.key" && echo "YES" || echo "NO"
 
 # Alpine: check what Bareos version an Alpine tag ships
 docker run --rm alpine:<tag> sh -c "apk update -q 2>/dev/null && apk search -e bareos"

@@ -18,8 +18,8 @@ LABEL org.label-schema.schema-version="1.0" \
 ENV DEBIAN_FRONTEND=noninteractive
 ENV BAREOS_DPKG_CONF="bareos-database-common bareos-database-common"
 
-ARG BAREOS_KEY=http://download.bareos.org/current/xUbuntu_24.04/Release.key
-ARG BAREOS_REPO=http://download.bareos.org/current/xUbuntu_24.04/
+ARG BAREOS_KEY=https://download.bareos.org/current/xUbuntu_24.04/Release.key
+ARG BAREOS_REPO=https://download.bareos.org/current/xUbuntu_24.04/
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -54,6 +54,7 @@ RUN apt-get update -qq \
 RUN tar czf /bareos-dir.tgz /etc/bareos
 
 COPY --chmod=755 webhook-notify /usr/local/bin/webhook-notify
+COPY webui-admin.conf admin.conf.example /usr/local/share/bareos/
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod u+x /docker-entrypoint.sh
