@@ -20,6 +20,7 @@ RUN apk update \
  && sha256sum -c /tmp/wizcli/wizcli-linux-amd64-sha256.check \
  && mv /tmp/wizcli/wizcli-linux-amd64 /usr/local/bin/wizcli \
  && chmod +x /usr/local/bin/wizcli \
+ && gpgconf --kill all \
  && apk del gnupg \
  && rm -rf /tmp/wizcli /root/.gnupg /var/cache/apk/*
 
