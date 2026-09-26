@@ -10,15 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install hadolint
         run: |
-          url_api="https://api.github.com/repos/hadolint/hadolint/releases/latest"
-          version=$(curl --silent $url_api | jq -r .tag_name)
-          url_rlz="https://github.com/hadolint/hadolint/releases/download/${version}"
+          version=v2.15.1
+          sha256=c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507
           file='hadolint-linux-x86_64'
-          wget "${url_rlz}/$file"
+          url_rlz="https://github.com/hadolint/hadolint/releases/download/${version}"
+          curl -fsSL -o "$file" "${url_rlz}/$file"
+          echo "${sha256}  ${file}" | sha256sum -c -
           chmod u+x "$file"
           ln -s "$file" hadolint
       - name: Check Docker files
@@ -31,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install mardownlint
         run: |
