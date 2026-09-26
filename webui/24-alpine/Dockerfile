@@ -14,6 +14,8 @@ ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_VER=24-alpine3.23
 ARG BAREOS_APK_SHA256_AARCH64=8b7dd2797704bd792c49f59e3e20b29753b08b8c42ef9e4905d8d34323640b4d
 
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+
 RUN apk upgrade --no-cache \
  && if [ "$TARGETARCH" = "amd64" ]; then \
       apk add --no-cache bareos-webui-nginx; \

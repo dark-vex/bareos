@@ -13,6 +13,8 @@ ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_ASSET=bareos-23-alpine3.21-aarch64.tar.gz
 ARG BAREOS_APK_SHA256_AARCH64=a7799df41c615626200de87c4bdae9411ca555338d25caea13f1fa7db2a219be
 
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+
 RUN apk upgrade --no-cache \
  && if [ "$TARGETARCH" = "arm64" ]; then \
       apk add --no-cache curl tar \

@@ -16,8 +16,8 @@ RUN apk update \
  && [ "${imported_fingerprint}" = "${WIZCLI_GPG_FINGERPRINT}" ] \
  && gpg --import /tmp/wizcli/public_key.asc \
  && gpg --verify /tmp/wizcli/wizcli-linux-amd64-sha256.sig /tmp/wizcli/wizcli-linux-amd64-sha256 \
- && awk '{ print $1 "  wizcli-linux-amd64" }' /tmp/wizcli/wizcli-linux-amd64-sha256 > /tmp/wizcli/wizcli-linux-amd64-sha256.check \
- && ( cd /tmp/wizcli && sha256sum -c wizcli-linux-amd64-sha256.check ) \
+ && awk '{ print $1 "  /tmp/wizcli/wizcli-linux-amd64" }' /tmp/wizcli/wizcli-linux-amd64-sha256 > /tmp/wizcli/wizcli-linux-amd64-sha256.check \
+ && sha256sum -c /tmp/wizcli/wizcli-linux-amd64-sha256.check \
  && mv /tmp/wizcli/wizcli-linux-amd64 /usr/local/bin/wizcli \
  && chmod +x /usr/local/bin/wizcli \
  && apk del gnupg \
