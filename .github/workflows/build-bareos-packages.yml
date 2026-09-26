@@ -13,6 +13,9 @@ on:
       - 'bareos-packages/**'
       - '.github/workflows/build-bareos-packages.yml'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -60,6 +63,8 @@ jobs:
     needs: build
     if: startsWith(github.ref, 'refs/tags/pkg/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:

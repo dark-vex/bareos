@@ -2,6 +2,9 @@ name: test-n-lint
 
 on: [push, pull_request, workflow_dispatch]
 
+permissions:
+  contents: read
+
 jobs:
   lint-docker:
     runs-on: ubuntu-latest

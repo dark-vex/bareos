@@ -13,6 +13,9 @@ on:
       - 'bareos-alpine-packages/**'
       - '.github/workflows/build-bareos-alpine-packages.yml'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     # Native aarch64 runner — no QEMU emulation needed. A pilot benchmark
