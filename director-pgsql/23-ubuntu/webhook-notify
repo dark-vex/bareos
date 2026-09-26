@@ -14,6 +14,14 @@ fi
 msg_txt="$msg_icon Bareos: $job_type $job_status of $job_client \
 $job_level (${job_name})"
 
+json_escape()
+{
+  printf '%s' "$1" | tr '\t\r' '  ' | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+msg_txt=$(json_escape "$msg_txt")
+webhook_chat_id=$(json_escape "$WEBHOOK_CHAT_ID")
+
 load_json()
 {
   if [ "${WEBHOOK_TYPE}" = "slack" ] ; then
@@ -27,7 +35,7 @@ EOF
  if [ "${WEBHOOK_TYPE}" = "telegram" ] ; then
     cat <<EOF
 {
-  "chat_id": "${WEBHOOK_CHAT_ID}",
+  "chat_id": "${webhook_chat_id}",
   "text": "$msg_txt",
   "disable_notification": false
 }
@@ -35,7 +43,7 @@ EOF
  fi
 }
 
-/usr/bin/curl -s -k -X POST \
+/usr/bin/curl -sS --fail --max-time 30 -X POST \
     -H 'Content-Type: application/json' \
     -d "$(load_json)" \
-    ${WEBHOOK_URL}
+    "${WEBHOOK_URL}"
