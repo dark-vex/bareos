@@ -37,5 +37,12 @@ if [ "${SERVER_STATS:-}" = "yes" ]; then
   sed -i 's!#ServerName.*!Alias /server-status /var/www/dummy!' "$apache_conf"
 fi
 
+case "${1:-}" in
+  */apache2ctl|apache2ctl)
+    mkdir -p /run/php
+    /usr/local/sbin/php-fpm --daemonize
+    ;;
+esac
+
 # Run Dockerfile CMD
 exec "$@"
