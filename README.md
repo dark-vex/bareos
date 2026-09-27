@@ -259,6 +259,29 @@ http://localhost:9625/metrics
 Metrics are provided by [bareos_exporter][bareos-exporter-href] and should be
 scraped by [Prometheus][prometheus-href].
 
+## Verifying Images
+
+Images published from `master` are signed with [cosign][cosign-href] keyless
+signing through GitHub Actions OIDC, and carry an SPDX SBOM and a SLSA
+provenance attestation. Signatures are made on image digests, so resolve the
+tag first and verify the digest:
+
+```bash
+image=darkvex/bareos-director:25-alpine-pgsql
+digest=$(docker buildx imagetools inspect "$image" --format '{{json .Manifest}}' | jq -r .digest)
+
+cosign verify "darkvex/bareos-director@${digest}" \
+  --certificate-identity-regexp '^https://github.com/dark-vex/bareos/\.github/workflows/ci-[a-z]+\.yml@refs/heads/master$' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+cosign verify-attestation --type spdxjson "darkvex/bareos-director@${digest}" \
+  --certificate-identity-regexp '^https://github.com/dark-vex/bareos/\.github/workflows/ci-[a-z]+\.yml@refs/heads/master$' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+Use `--type slsaprovenance` to verify the provenance attestation instead of
+the SBOM.
+
 ## Database Migration
 
 Bareos 21 and newer do not ship the MySQL catalog backend. To migrate an
@@ -317,6 +340,7 @@ build can download them.
 [compose-ubuntu-pgsql-href]: https://github.com/Dark-Vex/bareos/blob/master/docker-compose-ubuntu-pgsql.yml
 [compose-db-migration-href]: https://github.com/Dark-Vex/bareos/blob/master/bareos-db-migration/docker-compose.yml
 [docker-compose-href]: https://docs.docker.com/compose
+[cosign-href]: https://github.com/sigstore/cosign
 [docker-href]: https://docs.docker.com/engine/install/
 [docker-img-dir]: https://img.shields.io/docker/pulls/darkvex/bareos-director?label=bareos-director&logo=docker
 [docker-img-fd]: https://img.shields.io/docker/pulls/darkvex/bareos-client?label=bareos-client&logo=docker

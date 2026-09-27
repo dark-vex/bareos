@@ -34,6 +34,13 @@ inputs:
   wiz_client_secret:
     description: 'Wiz service account client secret'
     required: true
+outputs:
+  pushed_digests_file:
+    description: >-
+      Workspace-relative path to a text file listing "<image>@sha256:..."
+      for every tag or manifest digest actually pushed to a registry this
+      run (images blocked by the Wiz scan gate are excluded). The file is
+      always created, empty when nothing was pushed.
 runs:
   using: 'docker'
   image: 'Dockerfile'
