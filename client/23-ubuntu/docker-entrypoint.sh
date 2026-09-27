@@ -47,7 +47,7 @@ if [ "$(id -u)" = '0' ]; then
 
   # Drop privileges
   if [ "${BAREOS_DAEMON_USER}" != 'root' ]; then
-    HOME="$(getent passwd "${BAREOS_DAEMON_USER}" | cut -d: -f6)" exec setpriv --reuid="${BAREOS_DAEMON_USER}" --regid="${BAREOS_DAEMON_GROUP}" --init-groups "$BASH_SOURCE" "$@"
+    HOME="$(getent passwd "${BAREOS_DAEMON_USER}" | cut -d: -f6)" exec setpriv --reuid="${BAREOS_DAEMON_USER}" --regid="${BAREOS_DAEMON_GROUP}" --init-groups "${BASH_SOURCE[0]}" "$@"
   fi
 fi
 

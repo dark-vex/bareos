@@ -52,7 +52,7 @@ if [ "$(id -u)" = '0' ]; then
 
   # Su-exec
   if [ "${BAREOS_DAEMON_USER}" != 'root' ]; then
-    su-exec "${BAREOS_DAEMON_USER}" "$BASH_SOURCE" "$@"
+    exec su-exec "${BAREOS_DAEMON_USER}" "${BASH_SOURCE[0]}" "$@"
   fi
 fi
 
