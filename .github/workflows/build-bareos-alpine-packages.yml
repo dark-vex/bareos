@@ -8,7 +8,7 @@ on:
     branches:
       - master
     tags:
-      - 'pkg/**'
+      - 'pkg/bareos-alpine-packages-*'
     paths:
       - 'bareos-alpine-packages/**'
       - '.github/workflows/build-bareos-alpine-packages.yml'
@@ -78,44 +78,33 @@ jobs:
 
   release:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/pkg/')
+    if: startsWith(github.ref, 'refs/tags/pkg/bareos-alpine-packages-')
     runs-on: ubuntu-latest
     environment: production
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - alpine_branch: 3.21-stable
-            bareos_version: 23
-          - alpine_branch: 3.23-stable
-            bareos_version: 24
-          - alpine_branch: 3.24-stable
-            bareos_version: 25
 
     steps:
       - name: Download packages
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: apks-bareos-${{ matrix.bareos_version }}-alpine-aarch64
+          pattern: apks-bareos-*-alpine-aarch64
           path: apks/
 
-      - name: Create release tarball
-        env:
-          ALPINE_BRANCH: ${{ matrix.alpine_branch }}
-          BAREOS_VERSION: ${{ matrix.bareos_version }}
+      - name: Create release tarballs
         run: |
-          alpine_tag="${ALPINE_BRANCH%-stable}"
-          # upload-artifact's glob path preserves the source directory structure
-          # (apks/bareos-<ver>-alpine<tag>/aarch64/*.apk), but the component
-          # Dockerfiles expect a flat tarball of just the .apk files — flatten here.
-          mkdir -p flat
-          find apks/ -name '*.apk' -exec cp {} flat/ \;
-          tar czf "bareos-${BAREOS_VERSION}-alpine${alpine_tag}-aarch64.tar.gz" \
-            -C flat/ .
+          for dir in apks/apks-bareos-*-alpine-aarch64/bareos-*-alpine*; do
+            name="$(basename "${dir}")"
+            mkdir -p "flat/${name}"
+            find "${dir}" -name '*.apk' -exec cp {} "flat/${name}/" \;
+            tar czf "${name}-aarch64.tar.gz" -C "flat/${name}/" .
+          done
+          ls -l bareos-*-alpine*-aarch64.tar.gz
+          test "$(ls bareos-*-alpine*-aarch64.tar.gz | wc -l)" -eq 3
+          sha256sum bareos-*-alpine*-aarch64.tar.gz
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           files: bareos-*-alpine*-aarch64.tar.gz
+          fail_on_unmatched_files: true
