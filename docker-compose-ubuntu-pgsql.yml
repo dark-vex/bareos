@@ -1,5 +1,4 @@
 ## docker-compose Bareos Director/Storage/Client/webUI and PostgreSQL Database based on Ubuntu
-version: '3'
 services:
   bareos-dir:
     image: darkvex/bareos-director:25-ubuntu-pgsql
@@ -56,7 +55,7 @@ services:
   bareos-webui:
     image: darkvex/bareos-webui:25-ubuntu
     ports:
-      - 8080:80
+      - 127.0.0.1:8080:80
     environment:
       - BAREOS_DIR_HOST=bareos-dir
       - SERVER_STATS=yes
@@ -64,7 +63,7 @@ services:
       - /data/bareos/config/webui:/etc/bareos-webui
 
   bareos-db:
-    image: postgres:12
+    image: postgres:12@sha256:2f2a8c2a7d10862e7fba2602e304523554f9df8244c632dafe2628ccb398fb5c
     volumes:
       - /data/pgsql/data:/var/lib/postgresql/data
     environment:
@@ -73,22 +72,22 @@ services:
       - POSTGRES_INITDB_ARGS=--encoding=SQL_ASCII
 
   smtpd:
-    image: devture/exim-relay
+    image: devture/exim-relay:4.98-r0-4@sha256:7ba30080c7a6ac4e93a99143ebd1aa229a16c47b97b2129002dc753c8a47f095
 
   # Optional tools
   # Bareos API
   bareos-api:
     image: darkvex/bareos-api:25-alpine
     ports:
-      - 8000:8000
+      - 127.0.0.1:8000:8000
     environment:
       - BAREOS_DIR_HOST=bareos-dir
 
   # Bareos metrics exporter for Prometheus
   bareos-exporter:
-    image: vierbergenlars/bareos_exporter:v0.6.0
+    image: vierbergenlars/bareos_exporter:v0.6.0@sha256:a950f10aa04f8d16ba50a0a64ffafdc13b52df687d90bafa1619ee8c3f93515e
     ports:
-      - 9625:9625
+      - 127.0.0.1:9625:9625
     environment:
       - DB_HOST=bareos-db
       - DB_USER=bareos
