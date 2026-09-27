@@ -9,3 +9,76 @@ updates:
       # Check for updates to GitHub Actions every weekday
       interval: "daily"
 
+  - package-ecosystem: "docker"
+    directories:
+      - "/director-pgsql/2[3-5]-*"
+      - "/storage/2[3-5]-*"
+      - "/client/2[3-5]-*"
+      - "/webui/2[3-5]-*"
+      - "/api/2[3-5]-alpine"
+      - "/.github/actions/*"
+      - "/bareos-packages"
+      - "/bareos-alpine-packages"
+    schedule:
+      interval: "weekly"
+    groups:
+      alpine:
+        patterns:
+          - "alpine"
+      ubuntu:
+        patterns:
+          - "ubuntu"
+      python:
+        patterns:
+          - "python"
+      docker-cli:
+        patterns:
+          - "docker"
+    ignore:
+      - dependency-name: "alpine"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+      - dependency-name: "ubuntu"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+      - dependency-name: "python"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+      - dependency-name: "docker"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+
+  - package-ecosystem: "pip"
+    directories:
+      - "/api/23-alpine"
+      - "/api/24-alpine"
+      - "/api/25-alpine"
+    schedule:
+      interval: "weekly"
+    groups:
+      bareos-python-dependencies:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "bareos-restapi"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "python-bareos"
+        update-types:
+          - "version-update:semver-major"
+
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      third-party-images:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "*/bareos-*"
+
