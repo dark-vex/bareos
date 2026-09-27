@@ -204,13 +204,12 @@ Available compose files:
 
 The compose examples store data under `/data/(bareos|mysql|pgsql)`.
 
-The three Alpine compose files also run a `php-fpm` sidecar for the WebUI,
-pinned to `barcus/php-fpm-alpine` by digest. This repo doesn't build or
-publish that image itself; `darkvex/php-fpm-alpine` (the name a prior repo
-rename briefly pointed at) does not exist on Docker Hub, so
-`barcus/php-fpm-alpine` is the last known-working upstream. The other
-third-party images (PostgreSQL, the SMTP relay and the metrics exporter) are
-pinned by digest too.
+The Alpine compose files also run a `php-fpm` sidecar for the WebUI. In
+`docker-compose-alpine-pgsql.yml` it uses the `darkvex/bareos-webui` image
+itself, which ships PHP-FPM listening on port 9000, started with
+`entrypoint: ["/usr/local/sbin/php-fpm"]`. The legacy MySQL compose files
+still use `barcus/php-fpm-alpine`. The third-party images (PostgreSQL, the
+SMTP relay and the metrics exporter) are pinned by digest.
 
 The WebUI, REST API and metrics ports are published on `127.0.0.1` only, so
 the examples don't expose them to the network by default. Put a reverse

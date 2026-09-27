@@ -66,7 +66,8 @@ services:
       - php-fpm
 
   php-fpm:
-    image: barcus/php-fpm-alpine:latest@sha256:8a516932561765a550e9a56f774b4f2c03f30767ae2a28ee3c5ba59316715b3c
+    image: darkvex/bareos-webui:25-alpine
+    entrypoint: ["/usr/local/sbin/php-fpm"]
     volumes:
       - /data/bareos/config/webui:/etc/bareos-webui
       - /data/bareos/data/webui:/usr/share/bareos-webui
