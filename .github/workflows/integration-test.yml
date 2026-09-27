@@ -1,0 +1,74 @@
+name: integration-test
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'director-pgsql/2[3-5]-*/**'
+      - 'storage/2[3-5]-*/**'
+      - 'client/2[3-5]-*/**'
+      - 'webui/2[3-5]-*/**'
+      - 'api/2[3-5]-*/**'
+      - 'tests/integration/**'
+      - '.github/workflows/integration-test.yml'
+  pull_request:
+    paths:
+      - 'director-pgsql/2[3-5]-*/**'
+      - 'storage/2[3-5]-*/**'
+      - 'client/2[3-5]-*/**'
+      - 'webui/2[3-5]-*/**'
+      - 'api/2[3-5]-*/**'
+      - 'tests/integration/**'
+      - '.github/workflows/integration-test.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '50 5 * * 0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stack:
+    name: stack (${{ matrix.version }}-${{ matrix.flavor }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['23', '24', '25']
+        flavor: [alpine, ubuntu]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build images
+        env:
+          VERSION: ${{ matrix.version }}
+          FLAVOR: ${{ matrix.flavor }}
+        run: |
+          set -euo pipefail
+          tag="${VERSION}-${FLAVOR}"
+          docker build -t "itest/director:${tag}" "director-pgsql/${tag}"
+          docker build -t "itest/storage:${tag}" "storage/${tag}"
+          docker build -t "itest/client:${tag}" "client/${tag}"
+          docker build -t "itest/webui:${tag}" "webui/${tag}"
+          docker build -t "itest/api:${VERSION}" "api/${VERSION}-alpine"
+
+      - name: Run integration test
+        env:
+          DIR_IMAGE: itest/director:${{ matrix.version }}-${{ matrix.flavor }}
+          SD_IMAGE: itest/storage:${{ matrix.version }}-${{ matrix.flavor }}
+          FD_IMAGE: itest/client:${{ matrix.version }}-${{ matrix.flavor }}
+          WEBUI_IMAGE: itest/webui:${{ matrix.version }}-${{ matrix.flavor }}
+          API_IMAGE: itest/api:${{ matrix.version }}
+          FLAVOR: ${{ matrix.flavor }}
+          PROJECT: itest${{ matrix.version }}${{ matrix.flavor }}
+        run: bash tests/integration/stack-test.sh

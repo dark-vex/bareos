@@ -37,6 +37,14 @@ RUN apk upgrade --no-cache \
    && rm -rf /tmp/bareos-apks.tar.gz /tmp/bareos-apks; \
     fi
 
+RUN set -- /usr/sbin/php-fpm8* \
+ && [ -x "$1" ] \
+ && mkdir -p /usr/local/sbin \
+ && ln -sf "$1" /usr/local/sbin/php-fpm \
+ && set -- /etc/php8*/php-fpm.d \
+ && [ -d "$1" ] \
+ && printf '%s\n' '[global]' 'daemonize = no' 'error_log = /proc/self/fd/2' '[www]' 'listen = 9000' > "$1/zz-docker.conf"
+
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod u+x /docker-entrypoint.sh
 RUN tar cfvz /bareos-webui-config.tgz /etc/bareos-webui

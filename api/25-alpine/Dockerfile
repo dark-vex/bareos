@@ -21,12 +21,15 @@ USER 1000
 WORKDIR /home/bareos
 
 ENV PATH="/home/bareos/.local/bin:${PATH}"
-RUN pip install --no-cache-dir "bareos-restapi>=25,<26"
+COPY --chown=bareos requirements.txt /home/bareos/requirements.txt
+RUN pip install --no-cache-dir --require-hashes -r /home/bareos/requirements.txt
 
 COPY --chown=bareos docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod a+x /docker-entrypoint.sh
 
 EXPOSE 8000
 
+ENV UVICORN_LOG_LEVEL=info
+
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["uvicorn","--log-level", "debug", "--host", "0.0.0.0", "bareos_restapi:app", "--reload"]
+CMD ["uvicorn", "--host", "0.0.0.0", "bareos_restapi:app"]

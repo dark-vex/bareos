@@ -1,5 +1,4 @@
 ## docker-compose Bareos Director/Storage/Client/webUI, PHP-FPM and MySQL Database based on Alpine
-version: '3'
 services:
   bareos-dir:
     image: darkvex/bareos-director:25-alpine-pgsql
@@ -55,7 +54,7 @@ services:
   bareos-webui:
     image: darkvex/bareos-webui:25-alpine
     ports:
-      - 8080:9100
+      - 127.0.0.1:8080:9100
     environment:
       - BAREOS_DIR_HOST=bareos-dir
       - PHP_FPM_HOST=php-fpm
@@ -67,13 +66,13 @@ services:
       - php-fpm
 
   php-fpm:
-    image: barcus/php-fpm-alpine
+    image: barcus/php-fpm-alpine:latest@sha256:8a516932561765a550e9a56f774b4f2c03f30767ae2a28ee3c5ba59316715b3c
     volumes:
       - /data/bareos/config/webui:/etc/bareos-webui
       - /data/bareos/data/webui:/usr/share/bareos-webui
 
   bareos-db:
-    image: postgres:17-alpine
+    image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
     volumes:
       - /data/pgsql/data:/var/lib/postgresql/data
     environment:
@@ -84,10 +83,10 @@ services:
   bareos-api:
     image: darkvex/bareos-api:25-alpine
     ports:
-    - 8000:8000
+    - 127.0.0.1:8000:8000
     environment:
     - BAREOS_DIR_HOST=bareos-dir
 
   smtpd:
-    image: devture/exim-relay
+    image: devture/exim-relay:4.98-r0-4@sha256:7ba30080c7a6ac4e93a99143ebd1aa229a16c47b97b2129002dc753c8a47f095
 #EOF

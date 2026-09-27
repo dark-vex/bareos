@@ -34,6 +34,15 @@ RUN apt-get update -qq \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* /tmp/bareos-pkgs.tar.gz /tmp/bareos-debs
 
+RUN a2enmod proxy_fcgi setenvif \
+ && set -- /etc/apache2/conf-available/php*-fpm.conf \
+ && [ -f "$1" ] \
+ && a2enconf "$(basename "$1" .conf)" \
+ && set -- /usr/sbin/php-fpm* \
+ && [ -x "$1" ] \
+ && ln -sf "$1" /usr/local/sbin/php-fpm \
+ && mkdir -p /run/php
+
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod u+x /docker-entrypoint.sh
 
