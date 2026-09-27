@@ -21,12 +21,16 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 ARG BAREOS_KEY=https://download.bareos.org/current/xUbuntu_24.04/Release.key
 ARG BAREOS_REPO=https://download.bareos.org/current/xUbuntu_24.04/
+ARG BAREOS_KEY_FINGERPRINT=82834CF002D89BA55C1ED0AA42DA24A6DFEF9127
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update -qq \
  && apt-get install -qq -y --no-install-recommends curl gnupg ca-certificates \
- && curl -fsSL "${BAREOS_KEY}" | gpg --dearmor -o /usr/share/keyrings/bareos.gpg \
+ && curl -fsSL "${BAREOS_KEY}" -o /tmp/bareos.key \
+ && test "$(gpg --batch --show-keys --with-colons /tmp/bareos.key | awk -F: '$1 == "fpr" { print $10 }')" = "${BAREOS_KEY_FINGERPRINT}" \
+ && gpg --batch --dearmor -o /usr/share/keyrings/bareos.gpg /tmp/bareos.key \
+ && rm -f /tmp/bareos.key \
  && echo "deb [signed-by=/usr/share/keyrings/bareos.gpg] ${BAREOS_REPO} /" \
       > /etc/apt/sources.list.d/bareos.list \
  && apt-get update -qq \

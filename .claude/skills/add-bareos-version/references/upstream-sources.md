@@ -15,6 +15,8 @@ Last verified: 2026-06-01
 
 **Note**: For v22+, `current/` always tracks the latest Bareos release. The directory name reflects Ubuntu version, not Bareos version.
 
+**Signing key**: `current/` repos are signed by "Bareos experimental Signing Key <signing@bareos.com>", rsa4096 created 2019-10-28, fingerprint `82834CF002D89BA55C1ED0AA42DA24A6DFEF9127` (no subkeys). Verified 2026-09-27 against both `current/xUbuntu_24.04/Release.key` and keyserver.ubuntu.com. Dockerfiles pin it via `ARG BAREOS_KEY_FINGERPRINT`.
+
 ## Alpine repos
 
 Alpine's `community/bareos` package is actively maintained and tracks upstream Bareos —
