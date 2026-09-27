@@ -20,3 +20,6 @@ services:
 
   bareos-webui:
     image: ${BAREOS_IMAGE_REPO:-darkvex}/bareos-webui:${BAREOS_ALPINE_TAG:-23-alpine}
+
+  php-fpm:
+    image: ${BAREOS_IMAGE_REPO:-darkvex}/bareos-webui:${BAREOS_ALPINE_TAG:-23-alpine}

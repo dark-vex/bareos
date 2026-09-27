@@ -41,6 +41,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Build bareos-${{ matrix.bareos_version }} (alpine ${{ matrix.alpine_branch }}) aarch64 packages
         env:
@@ -50,16 +52,16 @@ jobs:
         run: |
           alpine_tag="${ALPINE_BRANCH%-stable}"
           docker build \
-            -f bareos-alpine-packages/Dockerfile.builder.${alpine_tag} \
-            -t bareos-alpine-builder:${alpine_tag} \
+            -f "bareos-alpine-packages/Dockerfile.builder.${alpine_tag}" \
+            -t "bareos-alpine-builder:${alpine_tag}" \
             bareos-alpine-packages/
           mkdir -p artifacts
           docker run --rm \
             -v "${{ github.workspace }}/artifacts:/artifacts" \
-            -e ALPINE_BRANCH=${ALPINE_BRANCH} \
-            -e BAREOS_VERSION=${BAREOS_VERSION} \
+            -e "ALPINE_BRANCH=${ALPINE_BRANCH}" \
+            -e "BAREOS_VERSION=${BAREOS_VERSION}" \
             -e ABUILD_PRIVKEY \
-            bareos-alpine-builder:${alpine_tag}
+            "bareos-alpine-builder:${alpine_tag}"
 
       - name: List produced packages
         env:
@@ -100,7 +102,8 @@ jobs:
             tar czf "${name}-aarch64.tar.gz" -C "flat/${name}/" .
           done
           ls -l bareos-*-alpine*-aarch64.tar.gz
-          test "$(ls bareos-*-alpine*-aarch64.tar.gz | wc -l)" -eq 3
+          tarballs=(bareos-*-alpine*-aarch64.tar.gz)
+          test "${#tarballs[@]}" -eq 3
           sha256sum bareos-*-alpine*-aarch64.tar.gz
 
       - name: Publish to GitHub Release

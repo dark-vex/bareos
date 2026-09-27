@@ -1,5 +1,5 @@
 # Bareos director Dockerfile
-FROM ubuntu:noble
+FROM ubuntu:noble@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3
 
 LABEL maintainer="bareos@ddlns.net"
 

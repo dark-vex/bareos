@@ -68,6 +68,33 @@ assert_count() {
   fi
 }
 
+fake_digest_for() {
+  printf '%s' "$1" | sha256sum | cut -d' ' -f1
+}
+
+assert_digest_line() {
+  local name="$1" pushed_ref="$2" digest expected
+  digest=$(fake_digest_for "${pushed_ref}")
+  expected="${name}@sha256:${digest}"
+  grep -qxF "${expected}" "${DIGEST_FILE}" || fail "expected digest line not found: ${expected}"
+}
+
+assert_no_digest_line_for() {
+  local pushed_ref="$1" digest
+  digest=$(fake_digest_for "${pushed_ref}")
+  if grep -q "sha256:${digest}\$" "${DIGEST_FILE}"; then
+    fail "unexpected digest line found for ${pushed_ref}"
+  fi
+}
+
+assert_digest_line_count() {
+  local expected="$1" actual
+  actual=$(grep -c '.' "${DIGEST_FILE}")
+  if [[ "${actual}" -ne "${expected}" ]]; then
+    fail "expected ${expected} digest line(s), got ${actual}"
+  fi
+}
+
 setup_fixture() {
   WORKDIR="$(mktemp -d)"
   WORKDIRS+=("${WORKDIR}")
@@ -115,12 +142,19 @@ case "${cmd}" in
     if [[ -n "${FAIL_PUSH_MATCH:-}" && "${ref}" == *"${FAIL_PUSH_MATCH}"* ]]; then
       exit 1
     fi
+    fake_digest=$(printf '%s' "${ref}" | sha256sum | cut -d' ' -f1)
+    echo "latest: digest: sha256:${fake_digest} size: 1234"
     exit 0
     ;;
   manifest)
+    sub="$2"
     ref="$3"
     if [[ -n "${FAIL_MANIFEST_MATCH:-}" && "${ref}" == *"${FAIL_MANIFEST_MATCH}"* ]]; then
       exit 1
+    fi
+    if [[ "${sub}" == "push" ]]; then
+      fake_digest=$(printf '%s' "${ref}" | sha256sum | cut -d' ' -f1)
+      echo "sha256:${fake_digest}"
     fi
     exit 0
     ;;
@@ -219,7 +253,9 @@ run_entrypoint() {
     export PATH="${BIN_DIR}:${PATH}"
     bash "${ENTRYPOINT}"
   ) > "${WORKDIR}/output.log" 2>&1
-  return $?
+  local rc=$?
+  DIGEST_FILE="${GITHUB_WORKSPACE}/build/pushed_digests.txt"
+  return "${rc}"
 }
 
 scenario_all_success() {
@@ -261,6 +297,21 @@ scenario_all_success() {
   if grep -qw "jwt" "${CALL_LOG}"; then
     fail "JWT value found in argv logged to CALL_LOG"
   fi
+
+  assert_digest_line_count 10
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24-ubuntu"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24-alpine-amd64"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24-alpine-arm64"
+  assert_digest_line "darkvex/bareos-director-pgsql" "darkvex/bareos-director-pgsql:24-ubuntu"
+  assert_digest_line "darkvex/bareos-director-pgsql" "darkvex/bareos-director-pgsql:24-alpine-amd64"
+  assert_digest_line "darkvex/bareos-director-pgsql" "darkvex/bareos-director-pgsql:24-alpine-arm64"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24"
+  assert_digest_line "darkvex/bareos-director-pgsql" "darkvex/bareos-director-pgsql:24"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24-alpine"
+  assert_digest_line "darkvex/bareos-director-pgsql" "darkvex/bareos-director-pgsql:24-alpine"
+  if grep -qE ':[^/@]*@sha256:' "${DIGEST_FILE}"; then
+    fail "digest line still carries a tag before the @ separator"
+  fi
 }
 
 scenario_single_failed_push() {
@@ -282,6 +333,12 @@ scenario_single_failed_push() {
   assert_line "docker push test-registry/bareos-director-pgsql:24"
   assert_line "docker manifest create test-registry/bareos-director-pgsql:24-alpine test-registry/bareos-director-pgsql:24-alpine-amd64 test-registry/bareos-director-pgsql:24-alpine-arm64"
   assert_line "docker manifest push test-registry/bareos-director-pgsql:24-alpine"
+
+  assert_no_digest_line_for "test-registry/bareos-director-pgsql:24-alpine-amd64"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24-ubuntu"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24-alpine-arm64"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24-alpine"
 }
 
 scenario_failed_manifest_create() {
@@ -301,6 +358,9 @@ scenario_failed_manifest_create() {
   assert_no_line "docker manifest push test-registry/bareos-director-pgsql:24-alpine"
   # Unrelated rows still proceed.
   assert_line "docker push test-registry/bareos-director-pgsql:24-ubuntu"
+
+  assert_no_digest_line_for "test-registry/bareos-director-pgsql:24-alpine"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24-ubuntu"
 }
 
 scenario_primary_login_failure() {
@@ -375,6 +435,18 @@ scenario_wiz_scan_failure() {
   assert_line "regctl tag delete test-registry/bareos-director-pgsql:24-alpine-arm64 --host reg=registry.example.com,tls=enabled --ignore-missing"
   assert_no_line "curl -sS -o /dev/null -w %{http_code} -X DELETE -H @[^ ]+ https://hub.docker.com/v2/repositories/darkvex/bareos-director-pgsql/tags/24-alpine-amd64/"
   assert_line "curl -sS -o /dev/null -w %{http_code} -X DELETE -H @[^ ]+ https://hub.docker.com/v2/repositories/darkvex/bareos-director-pgsql/tags/24-alpine-arm64/"
+
+  assert_digest_line_count 8
+  assert_no_digest_line_for "test-registry/bareos-director-pgsql:24-alpine-amd64"
+  assert_no_digest_line_for "darkvex/bareos-director-pgsql:24-alpine-amd64"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24-alpine-arm64"
+  assert_digest_line "darkvex/bareos-director-pgsql" "darkvex/bareos-director-pgsql:24-alpine-arm64"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24-ubuntu"
+  assert_digest_line "darkvex/bareos-director-pgsql" "darkvex/bareos-director-pgsql:24-ubuntu"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24"
+  assert_digest_line "darkvex/bareos-director-pgsql" "darkvex/bareos-director-pgsql:24"
+  assert_digest_line "test-registry/bareos-director-pgsql" "test-registry/bareos-director-pgsql:24-alpine"
+  assert_digest_line "darkvex/bareos-director-pgsql" "darkvex/bareos-director-pgsql:24-alpine"
 }
 
 scenario_all_success

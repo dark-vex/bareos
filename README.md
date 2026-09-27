@@ -204,13 +204,12 @@ Available compose files:
 
 The compose examples store data under `/data/(bareos|mysql|pgsql)`.
 
-The three Alpine compose files also run a `php-fpm` sidecar for the WebUI,
-pinned to `barcus/php-fpm-alpine` by digest. This repo doesn't build or
-publish that image itself; `darkvex/php-fpm-alpine` (the name a prior repo
-rename briefly pointed at) does not exist on Docker Hub, so
-`barcus/php-fpm-alpine` is the last known-working upstream. The other
-third-party images (PostgreSQL, the SMTP relay and the metrics exporter) are
-pinned by digest too.
+The Alpine compose files also run a `php-fpm` sidecar for the WebUI. In
+`docker-compose-alpine-pgsql.yml` it uses the `darkvex/bareos-webui` image
+itself, which ships PHP-FPM listening on port 9000, started with
+`entrypoint: ["/usr/local/sbin/php-fpm"]`. The legacy MySQL compose files
+still use `barcus/php-fpm-alpine`. The third-party images (PostgreSQL, the
+SMTP relay and the metrics exporter) are pinned by digest.
 
 The WebUI, REST API and metrics ports are published on `127.0.0.1` only, so
 the examples don't expose them to the network by default. Put a reverse
@@ -258,6 +257,29 @@ http://localhost:9625/metrics
 
 Metrics are provided by [bareos_exporter][bareos-exporter-href] and should be
 scraped by [Prometheus][prometheus-href].
+
+## Verifying Images
+
+Images published from `master` are signed with [cosign][cosign-href] keyless
+signing through GitHub Actions OIDC, and carry an SPDX SBOM and a SLSA
+provenance attestation. Signatures are made on image digests, so resolve the
+tag first and verify the digest:
+
+```bash
+image=darkvex/bareos-director:25-alpine-pgsql
+digest=$(docker buildx imagetools inspect "$image" --format '{{json .Manifest}}' | jq -r .digest)
+
+cosign verify "darkvex/bareos-director@${digest}" \
+  --certificate-identity-regexp '^https://github.com/dark-vex/bareos/\.github/workflows/ci-[a-z]+\.yml@refs/heads/master$' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+cosign verify-attestation --type spdxjson "darkvex/bareos-director@${digest}" \
+  --certificate-identity-regexp '^https://github.com/dark-vex/bareos/\.github/workflows/ci-[a-z]+\.yml@refs/heads/master$' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+Use `--type slsaprovenance` to verify the provenance attestation instead of
+the SBOM.
 
 ## Database Migration
 
@@ -317,6 +339,7 @@ build can download them.
 [compose-ubuntu-pgsql-href]: https://github.com/Dark-Vex/bareos/blob/master/docker-compose-ubuntu-pgsql.yml
 [compose-db-migration-href]: https://github.com/Dark-Vex/bareos/blob/master/bareos-db-migration/docker-compose.yml
 [docker-compose-href]: https://docs.docker.com/compose
+[cosign-href]: https://github.com/sigstore/cosign
 [docker-href]: https://docs.docker.com/engine/install/
 [docker-img-dir]: https://img.shields.io/docker/pulls/darkvex/bareos-director?label=bareos-director&logo=docker
 [docker-img-fd]: https://img.shields.io/docker/pulls/darkvex/bareos-client?label=bareos-client&logo=docker

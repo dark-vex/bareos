@@ -16,12 +16,12 @@ echo ::endgroup::
 # Test images
 echo ::group::Test build tags
 HAS_ERROR=0
-while read app version arch path ; do
+while read -r app version arch _ ; do
   # If nightly image, don't test
   re_nightly='^nightly-.*$'
   [[ ${version} =~ $re_nightly ]] && continue
 
-  ARGS=''
+  ARGS=()
   CMD=()
   build_tag=${version}
   re_alpine='^[0-9]+-alpine.*$'
@@ -46,7 +46,7 @@ while read app version arch path ; do
   fi
 
   if [[ "$app" == "director" ]] ; then
-    ARGS="-e CI_TEST=true"
+    ARGS=(-e CI_TEST=true)
   fi
 
   # Check if Dockerfile exist
@@ -57,7 +57,7 @@ while read app version arch path ; do
   fi
 
   # Run docker and check version
-  img_version=$(docker run -t --rm ${ARGS} \
+  img_version=$(docker run -t --rm "${ARGS[@]}" \
     "bareos-${app}:${build_tag}" \
     "${CMD[@]}" | tail -1)
 

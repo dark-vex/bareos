@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Prepare build file
         uses: ./.github/actions/prepare-bareos-app
@@ -58,6 +60,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Download build metadata
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -95,6 +99,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      id-token: write
     needs: build
     if: |
       (github.event_name == 'push' || github.event_name == 'schedule') &&
@@ -104,6 +109,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Download build metadata
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -150,6 +157,81 @@ jobs:
           dockerhub_pass: ${{ secrets.DOCKERHUB_PASS }}
           wiz_client_id: ${{ secrets.WIZ_CLIENT_ID }}
           wiz_client_secret: ${{ secrets.WIZ_CLIENT_SECRET }}
+
+      - name: Install cosign
+        if: success() || failure()
+        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+        with:
+          cosign-release: 'v2.6.5'
+
+      - name: Install syft
+        if: success() || failure()
+        env:
+          SYFT_VERSION: '1.52.0'
+          SYFT_SHA256: caeedb81fb0491615f1ebd1761e4145d41ee86dd2cc7bf80669f9f5ad9d6133d
+        run: |
+          curl -sSLo syft.tar.gz \
+            "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_amd64.tar.gz"
+          echo "${SYFT_SHA256}  syft.tar.gz" | sha256sum -c -
+          sudo tar -xzf syft.tar.gz -C /usr/local/bin syft
+          rm -f syft.tar.gz
+
+      - name: Log in to primary registry for signing
+        if: success() || failure()
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ secrets.REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+
+      - name: Log in to Docker Hub for signing
+        if: success() || failure()
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_PASS }}
+
+      - name: Sign images and attach SBOM and provenance attestations
+        if: success() || failure()
+        shell: bash
+        run: |
+          digest_file="build/pushed_digests.txt"
+          if [[ ! -s "${digest_file}" ]]; then
+            echo "No pushed image digests recorded; nothing to sign."
+            exit 0
+          fi
+          predicate_dir=$(mktemp -d)
+          while IFS= read -r ref; do
+            [[ -z "${ref}" ]] && continue
+            echo "::group::Signing and attesting ${ref}"
+            cosign sign --yes "${ref}"
+
+            sbom_file="${predicate_dir}/sbom.spdx.json"
+            syft scan "registry:${ref}" -o "spdx-json=${sbom_file}"
+            cosign attest --yes --type spdxjson --predicate "${sbom_file}" "${ref}"
+
+            provenance_file="${predicate_dir}/provenance.json"
+            cat > "${provenance_file}" <<PROVENANCE
+          {
+            "builder": { "id": "${GITHUB_SERVER_URL}/${GITHUB_WORKFLOW_REF}" },
+            "buildType": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/.github/actions/push-bareos-app@v1",
+            "invocation": {
+              "configSource": {
+                "uri": "git+${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}",
+                "digest": { "sha1": "${GITHUB_SHA}" },
+                "entryPoint": "${GITHUB_WORKFLOW_REF}"
+              }
+            },
+            "metadata": {
+              "buildInvocationId": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}",
+              "completeness": { "parameters": false, "environment": false, "materials": false },
+              "reproducible": false
+            }
+          }
+          PROVENANCE
+            cosign attest --yes --type slsaprovenance --predicate "${provenance_file}" "${ref}"
+            echo "::endgroup::"
+          done < "${digest_file}"
 
       - name: Check for SARIF results
         id: sarif_check

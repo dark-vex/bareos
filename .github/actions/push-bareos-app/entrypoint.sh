@@ -8,6 +8,28 @@ declare -A blocked_build_tags
 
 mkdir -p "${workdir}/sarif"
 
+digest_file="${workdir}/pushed_digests.txt"
+: > "${digest_file}"
+
+strip_tag() {
+  local ref="$1" tag
+  tag="${ref##*:}"
+  if [[ "${tag}" == */* ]]; then
+    printf '%s\n' "${ref}"
+  else
+    printf '%s\n' "${ref%:*}"
+  fi
+}
+
+record_digest() {
+  local ref="$1" output="$2" digest name
+  digest=$(printf '%s' "${output}" | grep -oE 'sha256:[0-9a-f]{64}' | tail -1)
+  if [[ -n "${digest}" ]]; then
+    name=$(strip_tag "${ref}")
+    echo "${name}@${digest}" >> "${digest_file}"
+  fi
+}
+
 # Enable experimental feature in Docker
 export DOCKER_CLI_EXPERIMENTAL="enabled"
 
@@ -16,7 +38,7 @@ export WIZ_CLIENT_ID="${INPUT_WIZ_CLIENT_ID}"
 export WIZ_CLIENT_SECRET="${INPUT_WIZ_CLIENT_SECRET}"
 
 # Fixed set of Wiz policies enforced on every container-image scan
-wiz_policies="[ddl] Default secrets policy","[ddl] Default sensitive data policy","[ddl] Default software license policy","[ddl] Default vulnerabilities policy"
+wiz_policies='[ddl] Default secrets policy,[ddl] Default sensitive data policy,[ddl] Default software license policy,[ddl] Default vulnerabilities policy'
 
 # Strip any http/https scheme prefix and trailing slash
 registry="${INPUT_REGISTRY#https://}"
@@ -102,8 +124,12 @@ while read -r app version arch app_path ; do
     if [[ $version =~ $re ]] ; then
       rm_tags+=("${img_prefix}-${app}:${build_tag}")
     fi
-    if docker push "${remote_name}"; then
+    push_output=$(docker push "${remote_name}" 2>&1)
+    push_rc=$?
+    printf '%s\n' "${push_output}"
+    if [[ ${push_rc} -eq 0 ]]; then
       wizcli tag "${remote_name}"
+      record_digest "${remote_name}" "${push_output}"
     else
       echo "::error:: docker push failed for ${remote_name}"
       HAS_ERROR=1
@@ -114,7 +140,12 @@ while read -r app version arch app_path ; do
         rm_tags_dockerhub+=("${dockerhub_prefix}-${app}:${build_tag}")
       fi
       docker tag "${local_name}" "${dockerhub_name}"
-      if ! docker push "${dockerhub_name}"; then
+      dockerhub_push_output=$(docker push "${dockerhub_name}" 2>&1)
+      dockerhub_push_rc=$?
+      printf '%s\n' "${dockerhub_push_output}"
+      if [[ ${dockerhub_push_rc} -eq 0 ]]; then
+        record_digest "${dockerhub_name}" "${dockerhub_push_output}"
+      else
         echo "::error:: docker push failed for ${dockerhub_name}"
         HAS_ERROR=1
       fi
@@ -133,8 +164,12 @@ while read -r build_app s_tag t_tag ; do
     else
       docker tag "${img_prefix}-${build_app}:${s_tag}" \
         "${img_prefix}-${build_app}:${t_tag}"
-      if docker push "${img_prefix}-${build_app}:${t_tag}"; then
+      tag_push_output=$(docker push "${img_prefix}-${build_app}:${t_tag}" 2>&1)
+      tag_push_rc=$?
+      printf '%s\n' "${tag_push_output}"
+      if [[ ${tag_push_rc} -eq 0 ]]; then
         wizcli tag "${img_prefix}-${build_app}:${t_tag}"
+        record_digest "${img_prefix}-${build_app}:${t_tag}" "${tag_push_output}"
       else
         echo "::error:: docker push failed for ${img_prefix}-${build_app}:${t_tag}"
         HAS_ERROR=1
@@ -157,9 +192,16 @@ while read -r build_app s_tag t_tag ; do
     elif ! docker manifest create "${img_prefix}-${build_app}:${t_tag}" "${manifest_refs[@]}"; then
       echo "::error:: docker manifest create failed for ${img_prefix}-${build_app}:${t_tag}"
       HAS_ERROR=1
-    elif ! docker manifest push "${img_prefix}-${build_app}:${t_tag}"; then
-      echo "::error:: docker manifest push failed for ${img_prefix}-${build_app}:${t_tag}"
-      HAS_ERROR=1
+    else
+      manifest_push_output=$(docker manifest push "${img_prefix}-${build_app}:${t_tag}" 2>&1)
+      manifest_push_rc=$?
+      printf '%s\n' "${manifest_push_output}"
+      if [[ ${manifest_push_rc} -eq 0 ]]; then
+        record_digest "${img_prefix}-${build_app}:${t_tag}" "${manifest_push_output}"
+      else
+        echo "::error:: docker manifest push failed for ${img_prefix}-${build_app}:${t_tag}"
+        HAS_ERROR=1
+      fi
     fi
   fi
   if [[ ${dockerhub_enabled} -eq 1 ]]; then
@@ -167,7 +209,12 @@ while read -r build_app s_tag t_tag ; do
       if [[ -z "${blocked_build_tags["${build_app}|${s_tag}"]:-}" ]]; then
         docker tag "${dockerhub_prefix}-${build_app}:${s_tag}" \
           "${dockerhub_prefix}-${build_app}:${t_tag}"
-        if ! docker push "${dockerhub_prefix}-${build_app}:${t_tag}"; then
+        dockerhub_tag_push_output=$(docker push "${dockerhub_prefix}-${build_app}:${t_tag}" 2>&1)
+        dockerhub_tag_push_rc=$?
+        printf '%s\n' "${dockerhub_tag_push_output}"
+        if [[ ${dockerhub_tag_push_rc} -eq 0 ]]; then
+          record_digest "${dockerhub_prefix}-${build_app}:${t_tag}" "${dockerhub_tag_push_output}"
+        else
           echo "::error:: docker push failed for ${dockerhub_prefix}-${build_app}:${t_tag}"
           HAS_ERROR=1
         fi
@@ -186,9 +233,16 @@ while read -r build_app s_tag t_tag ; do
       elif ! docker manifest create "${dockerhub_prefix}-${build_app}:${t_tag}" "${dockerhub_manifest_refs[@]}"; then
         echo "::error:: docker manifest create failed for ${dockerhub_prefix}-${build_app}:${t_tag}"
         HAS_ERROR=1
-      elif ! docker manifest push "${dockerhub_prefix}-${build_app}:${t_tag}"; then
-        echo "::error:: docker manifest push failed for ${dockerhub_prefix}-${build_app}:${t_tag}"
-        HAS_ERROR=1
+      else
+        dockerhub_manifest_push_output=$(docker manifest push "${dockerhub_prefix}-${build_app}:${t_tag}" 2>&1)
+        dockerhub_manifest_push_rc=$?
+        printf '%s\n' "${dockerhub_manifest_push_output}"
+        if [[ ${dockerhub_manifest_push_rc} -eq 0 ]]; then
+          record_digest "${dockerhub_prefix}-${build_app}:${t_tag}" "${dockerhub_manifest_push_output}"
+        else
+          echo "::error:: docker manifest push failed for ${dockerhub_prefix}-${build_app}:${t_tag}"
+          HAS_ERROR=1
+        fi
       fi
     fi
   fi
@@ -245,6 +299,10 @@ if [[ ${dockerhub_enabled} -eq 1 && ${#rm_tags_dockerhub[@]} -gt 0 ]]; then
   fi
 fi
 echo ::endgroup::
+
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+  echo "pushed_digests_file=build/pushed_digests.txt" >> "${GITHUB_OUTPUT}"
+fi
 
 if [[ ${HAS_ERROR} -ne 0 ]]; then
   exit 1
