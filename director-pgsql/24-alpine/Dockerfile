@@ -24,10 +24,12 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 # bareos-postgresql subpackage from Bareos 24 onward). armv7 and aarch64 are not
 # published upstream for this version; install our own custom-built .apk (see
 # bareos-alpine-packages/) for those arches instead.
-ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v2
+ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v4
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_VER=24-alpine3.23
-ARG BAREOS_APK_SHA256_AARCH64=8b7dd2797704bd792c49f59e3e20b29753b08b8c42ef9e4905d8d34323640b4d
+ARG BAREOS_APK_SHA256_AARCH64=492ae7d6f3e3fc79c2c6efbad08dc179b1c50caabd6401e23053449a670f1d38
+
+COPY bareos-apk@dark-vex.rsa.pub /etc/apk/keys/bareos-apk@dark-vex.rsa.pub
 
 RUN apk upgrade --no-cache \
  && apk add --no-cache postgresql-client curl tzdata tar \
@@ -43,7 +45,7 @@ RUN apk upgrade --no-cache \
    && echo "${bareos_sha256}  /tmp/bareos-apks.tar.gz" | sha256sum -c - \
    && mkdir -p /tmp/bareos-apks \
    && tar -xzf /tmp/bareos-apks.tar.gz -C /tmp/bareos-apks \
-   && apk add --no-cache --allow-untrusted /tmp/bareos-apks/bareos-[0-9]*.apk /tmp/bareos-apks/bareos-libs-*.apk \
+   && apk add --no-cache /tmp/bareos-apks/bareos-[0-9]*.apk /tmp/bareos-apks/bareos-libs-*.apk \
    && rm -rf /tmp/bareos-apks.tar.gz /tmp/bareos-apks; \
     fi
 
