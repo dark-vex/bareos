@@ -69,6 +69,8 @@ State what was generated, which tuples were skipped (upstream not found), whethe
 
 When the reference template downloads a custom-built `.apk` tarball from a GitHub Release (the `BAREOS_APK_REPO`/`BAREOS_APK_RELEASE`/`BAREOS_APK_VER` ARGs and `curl ... -o /tmp/bareos-apks.tar.gz` pattern), carry over its `ARG BAREOS_APK_SHA256_<ARCH>` and the `echo "${bareos_sha256}  /tmp/bareos-apks.tar.gz" | sha256sum -c -` step right after the download. For a new asset (new version, or a newly unblocked arch such as armv7), download it and compute its sha256 before writing the ARG value — never invent or skip the checksum.
 
+Also copy `bareos-alpine-packages/keys/bareos-apk@dark-vex.rsa.pub` into the new directory and keep the `COPY bareos-apk@dark-vex.rsa.pub /etc/apk/keys/...` line before the `RUN`: the custom packages are signed with that key and are installed without `--allow-untrusted`.
+
 ## Ubuntu key handling difference
 
 - v20–21 (old style): `curl -Ls $BAREOS_KEY -o /tmp/bareos.key` then `apt-key add /tmp/bareos.key`

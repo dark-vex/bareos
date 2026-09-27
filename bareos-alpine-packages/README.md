@@ -96,28 +96,35 @@ Artifacts are uploaded (30-day retention) as `apks-bareos-<version>-alpine-aarch
 ## Publishing a GitHub Release
 
 Tag the repo with `pkg/bareos-alpine-packages-vN` after a successful workflow run. The
-`release` job rebuilds the matrix and attaches a per-version tarball to the same
-GitHub Release:
+`release` job collects every per-version tarball from the build matrix and attaches
+them to one GitHub Release in a single step. Releases are immutable, so a failed or
+partial release needs a new tag rather than a re-run:
 
 ```bash
-git tag pkg/bareos-alpine-packages-v2
-git push origin pkg/bareos-alpine-packages-v2
+git tag pkg/bareos-alpine-packages-v4
+git push origin pkg/bareos-alpine-packages-v4
 ```
 
 ## Consuming packages in component Dockerfiles
 
-Once a release exists, component Dockerfiles install from it on `aarch64` only — amd64
+Each component directory carries a copy of `keys/bareos-apk@dark-vex.rsa.pub` so `apk`
+verifies the package signatures (no `--allow-untrusted`). Once a release exists,
+component Dockerfiles install from it on `aarch64` only — amd64
 (and, for bareos-23 only, armv7) install straight from Alpine's community repo:
 
 ```dockerfile
-ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v2
+ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v4
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_VER=25-alpine3.24
+ARG BAREOS_APK_SHA256_AARCH64=<sha256 of the release tarball>
+
+COPY bareos-apk@dark-vex.rsa.pub /etc/apk/keys/bareos-apk@dark-vex.rsa.pub
 
 RUN apk add --no-cache curl \
  && curl -fsSL "${BAREOS_APK_REPO}/releases/download/${BAREOS_APK_RELEASE}/bareos-${BAREOS_APK_VER}-aarch64.tar.gz" -o /tmp/bareos-apks.tar.gz \
+ && echo "${BAREOS_APK_SHA256_AARCH64}  /tmp/bareos-apks.tar.gz" | sha256sum -c - \
  && mkdir -p /tmp/bareos-apks && tar -xzf /tmp/bareos-apks.tar.gz -C /tmp/bareos-apks \
- && apk add --no-cache --allow-untrusted \
+ && apk add --no-cache \
     /tmp/bareos-apks/bareos-[0-9]*.apk \
     /tmp/bareos-apks/bareos-libs-*.apk \
     /tmp/bareos-apks/bareos-filedaemon-*.apk

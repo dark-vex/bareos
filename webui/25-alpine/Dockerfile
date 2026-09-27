@@ -9,12 +9,14 @@ ARG TARGETVARIANT
 # Alpine 3.24's community repo ships bareos-webui-nginx-25.0.3 for amd64 only.
 # armv7 and aarch64 are not published upstream for this version; install our own
 # custom-built .apk (see bareos-alpine-packages/) for those arches instead.
-ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v2
+ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v4
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_VER=25-alpine3.24
-ARG BAREOS_APK_SHA256_AARCH64=1d97f2ebdf1ce72ece48a20c34aca64390c3e433da1efd7169d80dbbf364444e
+ARG BAREOS_APK_SHA256_AARCH64=113a797543cd23c7983a41d6ca586e00466f086db1d5d5868c09e96ba411b747
 
 SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+
+COPY bareos-apk@dark-vex.rsa.pub /etc/apk/keys/bareos-apk@dark-vex.rsa.pub
 
 RUN apk upgrade --no-cache \
  && if [ "$TARGETARCH" = "amd64" ]; then \
@@ -30,7 +32,7 @@ RUN apk upgrade --no-cache \
    && echo "${bareos_sha256}  /tmp/bareos-apks.tar.gz" | sha256sum -c - \
    && mkdir -p /tmp/bareos-apks \
    && tar -xzf /tmp/bareos-apks.tar.gz -C /tmp/bareos-apks \
-   && apk add --no-cache --allow-untrusted /tmp/bareos-apks/bareos-webui-[0-9]*.apk /tmp/bareos-apks/bareos-webui-nginx-*.apk \
+   && apk add --no-cache /tmp/bareos-apks/bareos-webui-[0-9]*.apk /tmp/bareos-apks/bareos-webui-nginx-*.apk \
    && apk del curl \
    && rm -rf /tmp/bareos-apks.tar.gz /tmp/bareos-apks; \
     fi

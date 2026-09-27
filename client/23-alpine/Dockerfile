@@ -24,10 +24,12 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 # Alpine 3.21's community repo ships bareos-23.0.4 for amd64 and armv7 directly.
 # aarch64 is not published upstream for this version; install our own
 # custom-built .apk (see bareos-alpine-packages/) for that arch instead.
-ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v2
+ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v4
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_ASSET=bareos-23-alpine3.21-aarch64.tar.gz
-ARG BAREOS_APK_SHA256_AARCH64=a7799df41c615626200de87c4bdae9411ca555338d25caea13f1fa7db2a219be
+ARG BAREOS_APK_SHA256_AARCH64=1a3c7c2e9e6d74a292fb32d198ef5f3122f36b5f4fe0d4e7d902e0114433d772
+
+COPY bareos-apk@dark-vex.rsa.pub /etc/apk/keys/bareos-apk@dark-vex.rsa.pub
 
 RUN apk upgrade --no-cache \
  && apk add --no-cache openssh-client tar shadow bash su-exec \
@@ -37,7 +39,7 @@ RUN apk upgrade --no-cache \
    && echo "${BAREOS_APK_SHA256_AARCH64}  /tmp/bareos-apks.tar.gz" | sha256sum -c - \
    && mkdir -p /tmp/bareos-apks \
    && tar -xzf /tmp/bareos-apks.tar.gz -C /tmp/bareos-apks \
-   && apk add --no-cache --allow-untrusted /tmp/bareos-apks/bareos-[0-9]*.apk /tmp/bareos-apks/bareos-libs-*.apk /tmp/bareos-apks/bareos-filedaemon-*.apk \
+   && apk add --no-cache /tmp/bareos-apks/bareos-[0-9]*.apk /tmp/bareos-apks/bareos-libs-*.apk /tmp/bareos-apks/bareos-filedaemon-*.apk \
    && apk del curl \
    && rm -rf /tmp/bareos-apks.tar.gz /tmp/bareos-apks; \
     else \
