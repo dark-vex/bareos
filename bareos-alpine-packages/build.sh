@@ -34,8 +34,33 @@ fi
 
 chown -R builder:builder /home/builder/bareos
 
-echo "==> abuild-keygen + abuild -r as unprivileged builder user ..."
-su builder -c "cd /home/builder/bareos && abuild-keygen -a -i -n && abuild -r"
+ABUILD_KEY_NAME="${ABUILD_KEY_NAME:?ABUILD_KEY_NAME env var required}"
+[ -n "${ABUILD_PRIVKEY:-}" ] || {
+  echo "ERROR: ABUILD_PRIVKEY is empty, refusing to build unverifiable packages" >&2
+  exit 1
+}
+
+echo "==> Installing the package signing key for the builder user ..."
+install -d -m 700 -o builder -g builder /home/builder/.abuild
+( umask 077 && printf '%s\n' "${ABUILD_PRIVKEY}" > "/home/builder/.abuild/${ABUILD_KEY_NAME}" )
+unset ABUILD_PRIVKEY
+chown builder:builder "/home/builder/.abuild/${ABUILD_KEY_NAME}"
+cp "/etc/apk/keys/${ABUILD_KEY_NAME}.pub" "/home/builder/.abuild/${ABUILD_KEY_NAME}.pub"
+chown builder:builder "/home/builder/.abuild/${ABUILD_KEY_NAME}.pub"
+printf 'PACKAGER_PRIVKEY="/home/builder/.abuild/%s"\n' "${ABUILD_KEY_NAME}" > /home/builder/.abuild/abuild.conf
+chown builder:builder /home/builder/.abuild/abuild.conf
+
+derived_pub="$(openssl rsa -in "/home/builder/.abuild/${ABUILD_KEY_NAME}" -pubout 2>/dev/null)"
+[ "${derived_pub}" = "$(cat "/etc/apk/keys/${ABUILD_KEY_NAME}.pub")" ] || {
+  echo "ERROR: ABUILD_PRIVKEY does not match keys/${ABUILD_KEY_NAME}.pub" >&2
+  exit 1
+}
+
+echo "==> abuild -r as unprivileged builder user ..."
+su builder -c "cd /home/builder/bareos && abuild -r"
+
+echo "==> Verifying package signatures against keys/${ABUILD_KEY_NAME}.pub ..."
+find /home/builder/packages -name '*.apk' -exec apk verify {} +
 
 echo "==> Collecting artifacts ..."
 mkdir -p "${ARTIFACTS_DIR}"

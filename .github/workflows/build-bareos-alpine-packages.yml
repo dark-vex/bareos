@@ -25,6 +25,7 @@ jobs:
     # README.md's own estimate ("about a minute" native vs. "several
     # minutes to ~1 hour" emulated).
     runs-on: ubuntu-24.04-arm
+    environment: production
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -45,6 +46,7 @@ jobs:
         env:
           ALPINE_BRANCH: ${{ matrix.alpine_branch }}
           BAREOS_VERSION: ${{ matrix.bareos_version }}
+          ABUILD_PRIVKEY: ${{ secrets.ABUILD_PRIVKEY }}
         run: |
           alpine_tag="${ALPINE_BRANCH%-stable}"
           docker build \
@@ -56,6 +58,7 @@ jobs:
             -v "${{ github.workspace }}/artifacts:/artifacts" \
             -e ALPINE_BRANCH=${ALPINE_BRANCH} \
             -e BAREOS_VERSION=${BAREOS_VERSION} \
+            -e ABUILD_PRIVKEY \
             bareos-alpine-builder:${alpine_tag}
 
       - name: List produced packages
