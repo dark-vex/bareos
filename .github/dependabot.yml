@@ -70,15 +70,3 @@ updates:
       - dependency-name: "python-bareos"
         update-types:
           - "version-update:semver-major"
-
-  - package-ecosystem: "docker-compose"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    groups:
-      third-party-images:
-        patterns:
-          - "*"
-    ignore:
-      - dependency-name: "*/bareos-*"
-
