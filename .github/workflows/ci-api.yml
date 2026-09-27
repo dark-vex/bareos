@@ -200,18 +200,18 @@ jobs:
             echo "No pushed image digests recorded; nothing to sign."
             exit 0
           fi
-          predicate_dir=$(mktemp -d)
-          while IFS= read -r ref; do
-            [[ -z "${ref}" ]] && continue
-            echo "::group::Signing and attesting ${ref}"
-            cosign sign --yes "${ref}"
-
-            sbom_file="${predicate_dir}/sbom.spdx.json"
-            syft scan "registry:${ref}" -o "spdx-json=${sbom_file}"
-            cosign attest --yes --type spdxjson --predicate "${sbom_file}" "${ref}"
-
-            provenance_file="${predicate_dir}/provenance.json"
-            cat > "${provenance_file}" <<PROVENANCE
+          work_dir=$(mktemp -d)
+          retry() {
+            local attempt
+            for attempt in 1 2 3; do
+              "$@" && return 0
+              echo "Attempt ${attempt} failed: $*; retrying in $((attempt * 60))s"
+              sleep $((attempt * 60))
+            done
+            "$@"
+          }
+          provenance_file="${work_dir}/provenance.json"
+          cat > "${provenance_file}" <<PROVENANCE
           {
             "builder": { "id": "${GITHUB_SERVER_URL}/${GITHUB_WORKFLOW_REF}" },
             "buildType": "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/.github/actions/push-bareos-app@v1",
@@ -229,9 +229,25 @@ jobs:
             }
           }
           PROVENANCE
-            cosign attest --yes --type slsaprovenance --predicate "${provenance_file}" "${ref}"
+          sort -u "${digest_file}" | awk -F/ '{ print (($1 ~ /[.:]/) ? 0 : 1) "\t" $0 }' \
+            | sort -k1,1 -s | cut -f2- > "${work_dir}/refs.txt"
+          failed=0
+          while IFS= read -r ref; do
+            [[ -z "${ref}" ]] && continue
+            echo "::group::Signing and attesting ${ref}"
+            sbom_file="${work_dir}/${ref##*@sha256:}.spdx.json"
+            if retry cosign sign --yes "${ref}" \
+              && { [[ -s "${sbom_file}" ]] || retry syft scan "registry:${ref}" -o "spdx-json=${sbom_file}"; } \
+              && retry cosign attest --yes --type spdxjson --predicate "${sbom_file}" "${ref}" \
+              && retry cosign attest --yes --type slsaprovenance --predicate "${provenance_file}" "${ref}"; then
+              echo "Signed and attested ${ref}"
+            else
+              echo "::error::Signing or attestation failed for ${ref}"
+              failed=1
+            fi
             echo "::endgroup::"
-          done < "${digest_file}"
+          done < "${work_dir}/refs.txt"
+          exit "${failed}"
 
       - name: Check for SARIF results
         id: sarif_check
