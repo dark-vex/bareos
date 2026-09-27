@@ -53,10 +53,12 @@ breaks anything).
 docker build --platform linux/arm64 -f Dockerfile.builder.3.24 -t bareos-alpine-builder:3.24 .
 
 mkdir -p ../artifacts
+export ABUILD_PRIVKEY="$(cat /path/to/bareos-apk@dark-vex.rsa)"
 docker run --rm --platform linux/arm64 \
   -v "$(pwd)/../artifacts:/artifacts" \
   -e ALPINE_BRANCH=3.24-stable \
   -e BAREOS_VERSION=25 \
+  -e ABUILD_PRIVKEY \
   bareos-alpine-builder:3.24
 
 ls ../artifacts/bareos-25-alpine3.24/aarch64/
@@ -66,6 +68,20 @@ Replace `3.24`, `3.24-stable`, and `25` with the matching matrix values (see
 `matrix.yml`) for the other two cells. Building runs under QEMU emulation unless your
 host is natively arm64 (e.g. Apple Silicon) — expect single-digit minutes native,
 several minutes to ~1 hour under emulation on a shared CI runner.
+
+## Package signing
+
+Packages are signed with a fixed abuild key so images can verify them instead of
+installing with `--allow-untrusted`:
+
+- Public key: `keys/bareos-apk@dark-vex.rsa.pub` (baked into the builder at
+  `/etc/apk/keys/`, and into component images that install these packages).
+- Private key: the `ABUILD_PRIVKEY` secret of the `production` environment. `build.sh`
+  refuses to build without it, checks it matches the public key, and runs
+  `apk verify` on every produced `.apk`.
+
+To rotate the key, replace the public key file and the secret together, then publish a
+new `pkg/bareos-alpine-packages-vN` release and update the component Dockerfiles.
 
 ## CI / GitHub Actions
 

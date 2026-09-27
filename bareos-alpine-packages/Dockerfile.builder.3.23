@@ -11,6 +11,8 @@ RUN adduser -D builder \
  && mkdir -p /var/cache/distfiles \
  && chmod a+w /var/cache/distfiles
 
+ENV ABUILD_KEY_NAME=bareos-apk@dark-vex.rsa
+COPY keys/bareos-apk@dark-vex.rsa.pub /etc/apk/keys/bareos-apk@dark-vex.rsa.pub
 COPY build.sh /build.sh
 RUN chmod +x /build.sh
 
