@@ -205,19 +205,26 @@ Available compose files:
 The compose examples store data under `/data/(bareos|mysql|pgsql)`.
 
 The three Alpine compose files also run a `php-fpm` sidecar for the WebUI,
-pinned to `barcus/php-fpm-alpine`. This repo doesn't build or publish that
-image itself; `darkvex/php-fpm-alpine` (the name a prior repo rename briefly
-pointed at) does not exist on Docker Hub, so `barcus/php-fpm-alpine` is the
-last known-working upstream. It's an unpinned floating tag from a
-third-party namespace this repo doesn't control — pin it to a digest if you
-need a reproducible build.
+pinned to `barcus/php-fpm-alpine` by digest. This repo doesn't build or
+publish that image itself; `darkvex/php-fpm-alpine` (the name a prior repo
+rename briefly pointed at) does not exist on Docker Hub, so
+`barcus/php-fpm-alpine` is the last known-working upstream. The other
+third-party images (PostgreSQL, the SMTP relay and the metrics exporter) are
+pinned by digest too.
+
+The WebUI, REST API and metrics ports are published on `127.0.0.1` only, so
+the examples don't expose them to the network by default. Put a reverse
+proxy with TLS in front of them, or change the port mapping (for example
+`8080:9100` instead of `127.0.0.1:8080:9100`) if you really need direct
+remote access. The storage daemon port `9103` stays published on all
+interfaces because file daemons on other hosts connect to it.
 
 ## Access
 
 Web UI:
 
 ```text
-http://your-docker-host:8080
+http://localhost:8080
 ```
 
 Default user is `admin`; the password is `BAREOS_WEBUI_PASSWORD`.
@@ -240,13 +247,13 @@ full-privilege credential, not just a WebUI login.
 REST API docs:
 
 ```text
-http://your-docker-host:8000/docs
+http://localhost:8000/docs
 ```
 
 Prometheus metrics:
 
 ```text
-http://your-docker-host:9625/metrics
+http://localhost:9625/metrics
 ```
 
 Metrics are provided by [bareos_exporter][bareos-exporter-href] and should be
