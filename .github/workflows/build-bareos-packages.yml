@@ -8,7 +8,7 @@ on:
     branches:
       - master
     tags:
-      - 'pkg/**'
+      - 'pkg/bareos-packages-*'
     paths:
       - 'bareos-packages/**'
       - '.github/workflows/build-bareos-packages.yml'
@@ -61,35 +61,31 @@ jobs:
 
   release:
     needs: build
-    if: startsWith(github.ref, 'refs/tags/pkg/')
+    if: startsWith(github.ref, 'refs/tags/pkg/bareos-packages-')
     runs-on: ubuntu-latest
     environment: production
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - bareos_branch: bareos-23
-            bareos_ref: Release/23.1.7
-            ubuntu_codename: jammy
-          - bareos_branch: bareos-24
-            bareos_ref: Release/24.0.10
-            ubuntu_codename: noble
 
     steps:
       - name: Download packages
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: debs-${{ matrix.bareos_branch }}-${{ matrix.ubuntu_codename }}
+          pattern: debs-*
           path: debs/
 
-      - name: Create release tarball
+      - name: Create release tarballs
         run: |
-          tar czf ${{ matrix.bareos_branch }}-${{ matrix.ubuntu_codename }}.tar.gz \
-            -C debs/ .
+          for dir in debs/debs-*; do
+            name="$(basename "${dir}")"
+            tar czf "${name#debs-}.tar.gz" -C "${dir}/" .
+          done
+          ls -l bareos-*.tar.gz
+          test "$(ls bareos-*.tar.gz | wc -l)" -eq 2
+          sha256sum bareos-*.tar.gz
 
       - name: Publish to GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          files: ${{ matrix.bareos_branch }}-${{ matrix.ubuntu_codename }}.tar.gz
+          files: bareos-*.tar.gz
+          fail_on_unmatched_files: true
