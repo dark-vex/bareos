@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install hadolint
         run: |
@@ -24,23 +26,79 @@ jobs:
           ln -s "$file" hadolint
       - name: Check Docker files
         run: |
-          for file in $(find . -name Dockerfile); do
-            ./hadolint --ignore DL3008 --ignore DL3018 --ignore DL3059 $file
+          rc=0
+          for file in */2[3-5]-*/Dockerfile .github/actions/*/Dockerfile bareos-packages/Dockerfile* bareos-alpine-packages/Dockerfile*; do
+            echo "hadolint ${file}"
+            ./hadolint --ignore DL3008 --ignore DL3018 --ignore DL3059 "$file" || rc=1
           done
+          exit "$rc"
 
   lint-markdown:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install mardownlint
         run: |
-          sudo apt-get install ruby-full 
+          sudo apt-get install ruby-full
           sudo gem install mdl
 
       - name: Check md files
         run: |
-          for file in $(find . -name "*.md"); do
-            mdl $file
+          rc=0
+          while IFS= read -r -d '' file; do
+            mdl "$file" || rc=1
+          done < <(find . -name '*.md' -not -path './.git/*' -print0)
+          exit "$rc"
+
+  lint-shell:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check shell scripts
+        run: |
+          shellcheck --version
+          rc=0
+          for file in */2[3-5]-*/docker-entrypoint.sh */2[3-5]-*/webhook-notify .github/actions/*/entrypoint.sh .github/actions/*/test/*.sh tests/integration/*.sh; do
+            [ -f "$file" ] || continue
+            case "$(head -n1 "$file")" in
+              *bash*) dialect='bash' ;;
+              *) dialect='sh' ;;
+            esac
+            echo "shellcheck -s ${dialect} ${file}"
+            shellcheck -S warning -s "$dialect" "$file" || rc=1
           done
+          exit "$rc"
+
+  lint-workflows:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install actionlint
+        run: |
+          version=1.7.12
+          sha256=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+          file="actionlint_${version}_linux_amd64.tar.gz"
+          curl -fsSL -o "$file" "https://github.com/rhysd/actionlint/releases/download/v${version}/${file}"
+          echo "${sha256}  ${file}" | sha256sum -c -
+          tar -xzf "$file" actionlint
+
+      - name: Run actionlint
+        run: ./actionlint -color
+
+      - name: Install zizmor
+        run: pipx install zizmor==1.30.1
+
+      - name: Run zizmor
+        run: zizmor --offline --min-severity medium .github/workflows .github/actions

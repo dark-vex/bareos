@@ -34,6 +34,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Build ${{ matrix.bareos_branch }} / ${{ matrix.ubuntu_codename }} packages
         run: |
@@ -81,7 +83,8 @@ jobs:
             tar czf "${name#debs-}.tar.gz" -C "${dir}/" .
           done
           ls -l bareos-*.tar.gz
-          test "$(ls bareos-*.tar.gz | wc -l)" -eq 2
+          tarballs=(bareos-*.tar.gz)
+          test "${#tarballs[@]}" -eq 2
           sha256sum bareos-*.tar.gz
 
       - name: Publish to GitHub Release
