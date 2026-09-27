@@ -11,7 +11,8 @@ set -euo pipefail
 : "${API_IMAGE:?API_IMAGE is required}"
 : "${PROJECT:?PROJECT is required}"
 
-PG_IMAGE="${PG_IMAGE:-postgres:17-alpine}"
+PG_IMAGE="${PG_IMAGE:-postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24}"
+CURL_IMAGE="${CURL_IMAGE:-curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777}"
 FLAVOR="${FLAVOR:-alpine}"
 DIR_INIT_TIMEOUT="${DIR_INIT_TIMEOUT:-180}"
 JOB_TIMEOUT="${JOB_TIMEOUT:-180}"
@@ -116,7 +117,7 @@ bconsole_cmd() {
     for c in "$@"; do
       printf '%s\n' "$c"
     done
-  } | docker exec -i "$DIR" bconsole
+  } | timeout 60 docker exec -i "$DIR" bconsole
 }
 
 wait_for() {
@@ -137,7 +138,7 @@ wait_for() {
 job_status() {
   local jobid="$1"
   bconsole_cmd "llist jobid=${jobid}" 2>/dev/null \
-    | sed -n 's/^ *jobstatus: *\(.*\)$/\1/p' | head -n1
+    | awk '/^ *jobstatus:/ && !found { sub(/^ *jobstatus: */, ""); print; found = 1 }'
 }
 
 wait_job_terminated() {
@@ -253,7 +254,7 @@ webui_port() {
 
 webui_reachable() {
   local code
-  code="$(docker run --rm --network "$NET" mirror.gcr.io/curlimages/curl:latest \
+  code="$(docker run --rm --network "$NET" "$CURL_IMAGE" \
     -s -o /dev/null -w '%{http_code}' "http://bareos-webui:$(webui_port)/index.php/auth/login")"
   [ "$code" = "200" ]
 }
@@ -267,21 +268,21 @@ start_api() {
 
 api_reachable() {
   local code
-  code="$(docker run --rm --network "$NET" mirror.gcr.io/curlimages/curl:latest \
+  code="$(docker run --rm --network "$NET" "$CURL_IMAGE" \
     -s -o /dev/null -w '%{http_code}' "http://bareos-api:8000/docs")"
   [ "$code" = "200" ]
 }
 
 director_status_ok() {
-  bconsole_cmd "status director" 2>/dev/null | grep -qi "Daemon started"
+  bconsole_cmd "status director" 2>/dev/null | grep -i "Daemon started" >/dev/null
 }
 
 storage_status_ok() {
-  bconsole_cmd "status storage=File" 2>/dev/null | grep -qi "Daemon started"
+  bconsole_cmd "status storage=File" 2>/dev/null | grep -i "Daemon started" >/dev/null
 }
 
 client_status_ok() {
-  bconsole_cmd "status client=bareos-fd" 2>/dev/null | grep -qi "Daemon started"
+  bconsole_cmd "status client=bareos-fd" 2>/dev/null | grep -i "Daemon started" >/dev/null
 }
 
 MARKER_NAME=""
@@ -335,7 +336,7 @@ restore_content_matches() {
 webui_login_attempt() {
   local port="$1" password="$2"
   docker run --rm --network "$NET" -e URL="http://bareos-webui:${port}/index.php/auth/login" \
-    -e PASSWORD="$password" --entrypoint sh mirror.gcr.io/curlimages/curl:latest -c '
+    -e PASSWORD="$password" --entrypoint sh "$CURL_IMAGE" -c '
       field() { tr ">" "\n" < /tmp/page | sed -n "s/.*name=\"$1\".*value=\"\([^\"]*\)\".*/\1/p" | head -n1; }
       curl -s -D /tmp/headers -o /tmp/page "$URL"
       sid=$(sed -n "s/^[Ss]et-[Cc]ookie: \(bareos=[^;]*\).*/\1/p" /tmp/headers | head -n1)
@@ -366,7 +367,7 @@ webui_login_wrong_password_rejected() {
 
 api_token() {
   local password="$1"
-  docker run --rm --network "$NET" mirror.gcr.io/curlimages/curl:latest \
+  docker run --rm --network "$NET" "$CURL_IMAGE" \
     -s -X POST "http://bareos-api:8000/token" \
     --data-urlencode "username=admin" \
     --data-urlencode "password=${password}"
@@ -383,16 +384,16 @@ api_login_ok() {
 api_login_wrong_password_rejected() {
   local resp
   resp="$(api_token "definitely-wrong-password")"
-  printf '%s' "$resp" | grep -qi "incorrect\|unauthorized\|401"
+  printf '%s' "$resp" | grep -i "incorrect\|unauthorized\|401" >/dev/null
 }
 
 api_query_ok() {
   local token resp
   token="$(cat "$STATE_DIR/api-token")"
-  resp="$(docker run --rm --network "$NET" mirror.gcr.io/curlimages/curl:latest \
+  resp="$(docker run --rm --network "$NET" "$CURL_IMAGE" \
     -s -H "Authorization: Bearer ${token}" \
     "http://bareos-api:8000/control/clients")"
-  printf '%s' "$resp" | grep -qi "bareos-fd"
+  printf '%s' "$resp" | grep -i "bareos-fd" >/dev/null
 }
 
 main() {
