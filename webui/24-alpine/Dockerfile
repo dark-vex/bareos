@@ -53,6 +53,9 @@ RUN mkdir -p /run/nginx
 
 EXPOSE 9100
 
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=30s \
+    CMD ["wget", "-q", "-T", "3", "-O", "/dev/null", "http://127.0.0.1:9100/"]
+
 VOLUME /etc/bareos-webui
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

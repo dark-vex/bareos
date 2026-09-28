@@ -54,6 +54,9 @@ RUN tar czf /bareos-webui.tgz /etc/bareos-webui
 
 EXPOSE 80
 
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=30s \
+    CMD ["curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:80/"]
+
 VOLUME /etc/bareos-webui
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

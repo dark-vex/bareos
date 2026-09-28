@@ -231,6 +231,7 @@ start_webui() {
       -v "${VOL_WEBUI_CFG}:/etc/bareos-webui" \
       -v "${VOL_WEBUI_DATA}:/usr/share/bareos-webui" \
       --entrypoint /usr/local/sbin/php-fpm \
+      --health-cmd "nc -z 127.0.0.1 9000" --health-interval=10s --health-timeout=5s --health-retries=5 --health-start-period=15s \
       "$WEBUI_IMAGE" >/dev/null
     docker run -d --name "$WEBUI" --network "$NET" --network-alias bareos-webui \
       -e BAREOS_DIR_HOST=bareos-dir \
