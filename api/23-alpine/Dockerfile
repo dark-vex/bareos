@@ -29,6 +29,9 @@ RUN chmod a+x /docker-entrypoint.sh
 
 EXPOSE 8000
 
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=30s \
+    CMD ["wget", "-q", "-T", "3", "-O", "/dev/null", "http://127.0.0.1:8000/docs"]
+
 ENV UVICORN_LOG_LEVEL=info
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

@@ -29,7 +29,8 @@ services:
       - WEBHOOK_URL= # set the slack or telegram URL
       - WEBHOOK_CHAT_ID= # for telegram only set the <chat_id>
     depends_on:
-      - bareos-db
+      bareos-db:
+        condition: service_healthy
 
   bareos-sd:
     image: darkvex/bareos-storage:25-ubuntu
@@ -70,6 +71,12 @@ services:
       - POSTGRES_USER=${DB_ADMIN_USER} # defined in .env file
       - POSTGRES_PASSWORD=${DB_ADMIN_PASSWORD} # defined in .env file
       - POSTGRES_INITDB_ARGS=--encoding=SQL_ASCII
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   smtpd:
     image: devture/exim-relay:4.98-r0-4@sha256:7ba30080c7a6ac4e93a99143ebd1aa229a16c47b97b2129002dc753c8a47f095
@@ -94,6 +101,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - WAIT_FOR_DB=15
     depends_on:
-      - bareos-db
+      bareos-db:
+        condition: service_healthy
 
 #EOF

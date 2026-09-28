@@ -53,6 +53,9 @@ RUN chmod u+x /docker-entrypoint.sh
 
 EXPOSE 9101
 
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=90s \
+    CMD ["nc", "-z", "127.0.0.1", "9101"]
+
 VOLUME /etc/bareos
 VOLUME /var/lib/bareos
 

@@ -47,5 +47,8 @@ RUN tar czf /bareos-fd.tgz /etc/bareos/bareos-fd.d
 
 EXPOSE 9102
 
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=30s \
+    CMD ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9102"]
+
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["/usr/sbin/bareos-fd", "-f"]
