@@ -27,7 +27,7 @@ Alpine version, and `linux/arm/v7` is available for Bareos 23 only:
 | 25 | Alpine 3.24 | ✅ | ✅ | ❌ |
 | 24 | Alpine 3.23 | ✅ | ✅ | ❌ |
 | 23 | Alpine 3.21 | ✅ | ✅ | ✅ |
-| 22 and older | — | ✅ | — | — |
+| 22 | — | ✅ | — | — |
 
 amd64 and, for Bareos 23, arm/v7 install Bareos straight from Alpine's
 official `community` repository. arm64/v8 for Bareos 23/24/25 (and arm/v7 for
@@ -49,11 +49,6 @@ two versions regardless of who builds the package; see
 | PostgreSQL | `25-alpine-pgsql`, `25-alpine`, `alpine`, `latest` |
 | PostgreSQL | `24-alpine-pgsql`, `24-alpine` |
 | PostgreSQL | `23-alpine-pgsql`, `23-alpine` |
-| PostgreSQL | `21-ubuntu-pgsql`, `21-ubuntu`, `21` |
-| PostgreSQL | `21-alpine-pgsql`, `21-alpine` |
-| PostgreSQL | `20-ubuntu-pgsql`, `20-ubuntu`, `20` |
-| PostgreSQL | `20-alpine-pgsql`, `20-alpine` |
-| MySQL | `20-ubuntu-mysql`, `20-alpine-mysql` |
 
 `bareos-client`, `bareos-storage`, and `bareos-webui`:
 
@@ -65,8 +60,6 @@ two versions regardless of who builds the package; see
 | Alpine 3.24 | `25-alpine`, `alpine`, `latest` |
 | Alpine 3.23 | `24-alpine` |
 | Alpine 3.21 | `23-alpine` |
-| Ubuntu 20.04 | `21-ubuntu`, `21`, `20-ubuntu`, `20` |
-| Alpine | `21-alpine`, `20-alpine` |
 
 `bareos-api`:
 
@@ -76,14 +69,15 @@ two versions regardless of who builds the package; see
 | `24-alpine`, `24`, `alpine`, `latest` |
 | `23-alpine` |
 
-All `api/N-alpine` images are built from `python:3.14-alpine` and install the
-`bareos-restapi` PyPI package pinned to that Bareos version; only the latest
-version (currently 24) also gets the bare `24`, `alpine`, and `latest` tags.
+The currently published `api/23-alpine` through `api/25-alpine` images are
+built from `python:3.14-alpine` and install the `bareos-restapi` PyPI package
+pinned to that Bareos version; only the latest version (currently 24) also
+gets the bare `24`, `alpine`, and `latest` tags.
 
-The `api/21-alpine` and `api/22-alpine` directories are present in the source
-tree but not built or published: those `bareos-restapi` releases pull in a
-`pydantic` version their model code can't parse (fails on import with
-`PydanticSchemaGenerationError`), while 23+ import cleanly.
+The `api/22-alpine` directory is present in the source tree but not built or
+published: that `bareos-restapi` release pulls in a `pydantic` version its
+model code can't parse (fails on import with `PydanticSchemaGenerationError`),
+while 23+ import cleanly.
 
 ## Deprecated Tags
 
@@ -108,12 +102,16 @@ actively maintained images.
 | 24 | `24-ubuntu` on Ubuntu 24.04 | `24-alpine` on Alpine 3.23 | `24-alpine` (latest) | Ubuntu from GitHub package release; Alpine amd64+arm64/v8 |
 | 23 | `23-ubuntu` on Ubuntu 22.04 | `23-alpine` on Alpine 3.21 | `23-alpine` | Ubuntu from GitHub package release; Alpine amd64+arm64/v8+arm/v7 |
 | 22 | `22-ubuntu` on Ubuntu 22.04 | `22-alpine` on Alpine 3.18 | — | Deprecated: existing tags remain published but frozen, no further rebuilds or CVE patches (see Deprecated Tags above); `bareos-restapi` 22.x fails to import (see `bareos-api` tags above) |
-| 21 | `21-ubuntu` | `21-alpine` | — | Upstream versioned repo / Alpine package; `bareos-restapi` 21.x fails to import (see `bareos-api` tags above) |
-| 20 | `20-ubuntu` | `20-alpine` | — | Last version with MySQL backend; `bareos-restapi` was never published for 20 |
+| 21 and older | — | — | — | Removed from this repository — git history keeps the old Dockerfiles. No `16`–`21` tag remains on Docker Hub under `darkvex/`; `director-mysql/` (MySQL catalog backend, dropped upstream in Bareos 21) was removed in full. See the notes below for an upstream fallback and the MySQL migration path. |
 
-Bareos removed the MySQL catalog backend in version 21. Use `director-mysql/*`
-only for Bareos 20 or older and migrate existing MySQL catalogs to PostgreSQL
-before upgrading past Bareos 20.
+Upstream `barcus/bareos` (the project this repo was forked from) still
+publishes Bareos 18–22 images (`barcus/bareos-director:21-ubuntu`, etc.) —
+a fallback if you need one of these versions, not a recommendation: its
+`20`/`21` tags were last pushed 2023-04-30 and its `22-alpine` 2025-01-12,
+none of them have been rebuilt since, there's no `22-ubuntu` there, and
+nothing for Bareos 16 or 17 exists anywhere, upstream included. Bareos
+removed the MySQL catalog backend upstream in version 21 — see Database
+Migration below for moving an existing MySQL catalog to PostgreSQL.
 
 Bareos 23 removed the `dbdriver` directive from the catalog resource. If you
 are upgrading from Bareos 22 or older, remove any `dbdriver = "postgresql"`
@@ -198,18 +196,14 @@ Available compose files:
 |:--|:--|:--|
 | [docker-compose-alpine-pgsql.yml][compose-alpine-pgsql-href] | PostgreSQL | Alpine example stack |
 | [docker-compose-ubuntu-pgsql.yml][compose-ubuntu-pgsql-href] | PostgreSQL | Ubuntu example stack |
-| [docker-compose-alpine-mysql.yml][compose-alpine-mysql-href] | MySQL | legacy, Bareos 20 or older, unsupported |
-| [docker-compose-alpine-mysql-v2.yml][compose-alpine-mysql-v2-href] | MySQL | legacy, Bareos 20 or older, unsupported |
-| [docker-compose-ubuntu-mysql.yml][compose-ubuntu-mysql-href] | MySQL | legacy, Bareos 20 or older, unsupported |
 
-The compose examples store data under `/data/(bareos|mysql|pgsql)`.
+The compose examples store data under `/data/(bareos|pgsql)`.
 
 The Alpine compose files also run a `php-fpm` sidecar for the WebUI. In
 `docker-compose-alpine-pgsql.yml` it uses the `darkvex/bareos-webui` image
 itself, which ships PHP-FPM listening on port 9000, started with
-`entrypoint: ["/usr/local/sbin/php-fpm"]`. The legacy MySQL compose files
-still use `barcus/php-fpm-alpine`. The third-party images (PostgreSQL, the
-SMTP relay and the metrics exporter) are pinned by digest.
+`entrypoint: ["/usr/local/sbin/php-fpm"]`. The third-party images
+(PostgreSQL, the SMTP relay and the metrics exporter) are pinned by digest.
 
 The WebUI, REST API and metrics ports are published on `127.0.0.1` only, so
 the examples don't expose them to the network by default. Put a reverse
@@ -284,9 +278,17 @@ the SBOM.
 ## Database Migration
 
 Bareos 21 and newer do not ship the MySQL catalog backend. To migrate an
-existing MySQL catalog, upgrade to Bareos 20 first, then use the
-[database migration compose file][compose-db-migration-href] to copy the
-catalog into PostgreSQL.
+existing MySQL catalog, upgrade to Bareos 20 first, then copy the catalog
+into PostgreSQL. This repo's own [`bareos-db-migration/`][compose-db-migration-href]
+directory has Dockerfile source but no published image — CI has never built
+or pushed `darkvex/bareos-db-migration` — so its `docker-compose.yml` won't
+pull as shipped unless you build the image yourself first
+(`docker build -t darkvex/bareos-db-migration bareos-db-migration/`).
+Upstream `barcus/bareos` publishes a working, if stale (last updated
+2022-03-01), `barcus/bareos-db-migration:latest` image with its own compose
+file — see
+[barcus/bareos's `bareos-db-migration/docker-compose.yml`](https://github.com/barcus/bareos/blob/master/bareos-db-migration/docker-compose.yml)
+if you want something that pulls out of the box.
 
 If the target PostgreSQL database is empty or does not exist, the migration
 tool creates it. Keep `.env` available with the required database passwords.
@@ -310,7 +312,6 @@ build can download them.
 
 * [Bareos documentation][bareos-doc]
 * [director-pgsql][repo-director-pgsql]
-* [director-mysql][repo-director-mysql]
 * [storage][repo-storage]
 * [client][repo-client]
 * [webui][repo-webui]
@@ -333,9 +334,6 @@ build can download them.
 [build-api-href]: https://github.com/Dark-Vex/bareos/actions/workflows/ci-api.yml
 [build-api-img]: https://github.com/Dark-Vex/bareos/actions/workflows/ci-api.yml/badge.svg
 [compose-alpine-pgsql-href]: https://github.com/Dark-Vex/bareos/blob/master/docker-compose-alpine-pgsql.yml
-[compose-alpine-mysql-href]: https://github.com/Dark-Vex/bareos/blob/master/docker-compose-alpine-mysql.yml
-[compose-alpine-mysql-v2-href]: https://github.com/Dark-Vex/bareos/blob/master/docker-compose-alpine-mysql-v2.yml
-[compose-ubuntu-mysql-href]: https://github.com/Dark-Vex/bareos/blob/master/docker-compose-ubuntu-mysql.yml
 [compose-ubuntu-pgsql-href]: https://github.com/Dark-Vex/bareos/blob/master/docker-compose-ubuntu-pgsql.yml
 [compose-db-migration-href]: https://github.com/Dark-Vex/bareos/blob/master/bareos-db-migration/docker-compose.yml
 [docker-compose-href]: https://docs.docker.com/compose
@@ -358,7 +356,6 @@ build can download them.
 [bareos-exporter-href]: https://github.com/vierbergenlars/bareos_exporter
 [repo-api]: https://github.com/Dark-Vex/bareos/tree/master/api
 [repo-client]: https://github.com/Dark-Vex/bareos/tree/master/client
-[repo-director-mysql]: https://github.com/Dark-Vex/bareos/tree/master/director-mysql
 [repo-director-pgsql]: https://github.com/Dark-Vex/bareos/tree/master/director-pgsql
 [repo-storage]: https://github.com/Dark-Vex/bareos/tree/master/storage
 [repo-webui]: https://github.com/Dark-Vex/bareos/tree/master/webui

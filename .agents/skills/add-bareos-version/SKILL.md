@@ -70,4 +70,4 @@ State what was generated, which tuples were skipped (upstream not found), whethe
 - v20–21 (old style): `curl -Ls $BAREOS_KEY -o /tmp/bareos.key` then `apt-key add /tmp/bareos.key`
 - v22+ (new style): `curl -Ls $BAREOS_KEY | gpg --dearmor -o /usr/share/keyrings/bareos.gpg` then `[signed-by=/usr/share/keyrings/bareos.gpg]` in sources.list
 
-When generating v26-ubuntu, ensure the reference (v21-ubuntu old style) is adapted to the new gpg style shown in v24-ubuntu.
+When generating v26-ubuntu, ensure the old gpg style described above is adapted to the new style shown in v24-ubuntu.
