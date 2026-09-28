@@ -11,7 +11,10 @@ Only the actively maintained image lines receive security fixes:
 | 23             | ✓             | ✓             |
 | 22 and older   | ✗             | ✗             |
 
-Tags for older versions stay published but are no longer rebuilt or patched.
+Bareos 22 tags remain published but frozen — no further rebuilds or CVE
+patches. Bareos 21 and older have been removed entirely: no tags remain
+published under `darkvex/`, and their source directories were removed from
+this repository, so there is nothing left to patch.
 
 ## Reporting a vulnerability
 

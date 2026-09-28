@@ -63,7 +63,6 @@ Alpine images:
 
 For more information visit the Github repositories :
 
-* [bareos-director-mysql](https://github.com/dark-vex/bareos/tree/master/director-mysql)
 * [bareos-director-pgsql](https://github.com/dark-vex/bareos/tree/master/director-pgsql)
 * [bareos-storage](https://github.com/dark-vex/bareos/tree/master/storage)
 * [bareos-client](https://github.com/dark-vex/bareos/tree/master/client)

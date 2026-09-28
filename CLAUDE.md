@@ -11,7 +11,6 @@ A collection of Docker images for running [Bareos](https://www.bareos.org) (back
 Each component lives in its own directory with per-version subdirectories (e.g. `24-alpine`, `24-ubuntu`):
 
 - **`director-pgsql/`** — Bareos Director (orchestrator) backed by PostgreSQL
-- **`director-mysql/`** — Bareos Director backed by MySQL (deprecated in Bareos 21+)
 - **`storage/`** — Bareos Storage Daemon
 - **`client/`** — Bareos File Daemon (client)
 - **`webui/`** — Bareos Web UI (PHP-FPM based)
@@ -48,7 +47,7 @@ docker compose -f docker-compose-alpine-pgsql.yml up -d
 # Set DB_INIT=true in the compose file before first launch
 ```
 
-Available compose files: `docker-compose-alpine-pgsql.yml`, `docker-compose-alpine-mysql.yml`, `docker-compose-alpine-mysql-v2.yml`, `docker-compose-ubuntu-mysql.yml`, `docker-compose-ubuntu-pgsql.yml`. The `docker-compose.yml` symlink points to the alpine-pgsql variant.
+Available compose files: `docker-compose-alpine-pgsql.yml`, `docker-compose-ubuntu-pgsql.yml`. The `docker-compose.yml` symlink points to the alpine-pgsql variant.
 
 ## Accessing Services
 
@@ -122,7 +121,13 @@ The CI uses reusable composite actions in `.github/actions/` (prepare, build, pu
   ARM, confirmed via real `abuild -r` spikes). Do not add it back without
   re-verifying that bug is fixed upstream.
 - Current active versions: 23–25 (Ubuntu and Alpine)
-- MySQL backend was dropped in Bareos 21+; `director-mysql/` only goes up to version 20
+- MySQL backend was dropped upstream in Bareos 21+; this repo no longer
+  carries `director-mysql/` images. This repo's own `bareos-db-migration/`
+  ships Dockerfile source only — its image was never published (CI never
+  builds it, confirmed 404 on Docker Hub) — so migrating an existing MySQL
+  catalog to PostgreSQL means either building that image locally first or
+  using upstream `barcus/bareos`'s working (but stale) `bareos-db-migration`
+  compose file; see README's Database Migration section for both options.
 
 ### Deprecated versions
 
@@ -132,10 +137,22 @@ remain in the tree for reference only and are excluded from CI (see
 `darkvex/bareos-*:22-*`
 tags (Docker Hub and the private registry) remain published as-is but will
 **not** receive further rebuilds, base-image bumps, or CVE patches. Upgrade
-to v23, v24, or v25 for actively maintained images — do not point users at
-upstream `barcus/bareos` as an alternative for v22: its own source tree tops
-out at v21 and its Docker Hub `22-alpine`/`22-alpine-pgsql` tags haven't been
-pushed in over a year, with no `22-ubuntu` variant ever published there.
+to v23, v24, or v25 for actively maintained images. If you need an older
+version anyway, upstream `barcus/bareos` publishes Bareos 18–22 (`22-alpine`
+only, no `22-ubuntu`; nothing for 16 or 17) — but treat it as a fallback, not
+a recommendation: its `20`/`21` tags were last pushed 2023-04-30 and its
+`22-alpine` 2025-01-12, none rebuilt since, and it has no MySQL-backend
+variant.
+
+Bareos 21 and older (`*/16-*` through `*/21-*`, plus the whole
+`director-mysql/` component) have had their image source directories removed
+from this repository — nothing under `darkvex/` publishes those tags anymore,
+so there was no live tag left to document as deprecated the way v22 is. Use
+`git log -- <path>` (e.g. `git log -- director-pgsql/20-alpine`) to retrieve
+the old Dockerfiles from history. For a live image at one of these versions,
+see the `barcus/bareos` fallback noted above. The migration tooling itself
+(`bareos-db-migration/`) was not removed — only the per-version component
+directories were.
 
 ### Upstream package availability
 
