@@ -349,10 +349,40 @@ scope; hardening them is a natural follow-up.
 
 Director, Storage and Client/FD all start as root and drop privileges
 themselves (Bareos' own `-u bareos` flag for dir/sd, `su-exec`/`setpriv` in
-the FD entrypoint) — this needs `CAP_CHOWN` (entrypoint permission fixups)
-and `CAP_SETUID`/`CAP_SETGID` (the drop itself). `bareos-api` never runs as
-root at all (`USER 1000` from `ENTRYPOINT`), so it needs no added
-capabilities beyond dropping everything.
+the FD entrypoint) — this needs `CAP_SETUID`/`CAP_SETGID` (the drop itself)
+and three capabilities around the entrypoint's first-run config extraction:
+
+* `CAP_CHOWN` — the entrypoint's own chown fixups, and GNU tar's
+  `--same-owner` (its default as root) chowning each extracted config entry
+  to `bareos`.
+* `CAP_DAC_OVERRIDE` — `/etc/bareos` itself is baked `bareos:root` (or
+  `bareos:bareos` on ubuntu) in the image; root matches neither its owner
+  nor (on alpine) its group, so without this, root can't even write new
+  top-level entries into it.
+* `CAP_FOWNER` — after tar chowns an entry to `bareos`, it chmods that same
+  entry back to its recorded mode (GNU tar's `--preserve-permissions`
+  default as root) — but `chmod()` requires `CAP_FOWNER` whenever the
+  caller's uid no longer matches the file's owner, regardless of which bits
+  are being set.
+
+Missing either `DAC_OVERRIDE` or `FOWNER` doesn't degrade gracefully: GNU
+tar reports `Cannot change mode to ...: Operation not permitted` (or
+`Cannot rename to ...`), aborts the whole extraction, and the daemon crashes
+before it can start — on the very first run of a fresh volume, every time.
+**This was not caught by extensive local testing** (fresh-init runs,
+restarts, full backup+restore cycles, repeated many times) because that
+testing bind-mounted paths under Docker Desktop for Mac's macOS
+file-sharing layer (virtiofs/osxfs), which does not faithfully replicate
+these kernel-level permission checks. It only surfaced once this branch's
+actual CI run exercised a genuine Linux bind mount on GitHub's native
+runner — confirmed by reproducing the exact failure locally afterward using
+real Docker volumes instead of macOS bind mounts, and by verifying the fix
+the same way before pushing it. Take this as a concrete reminder that
+"tested locally on macOS" and "tested against a real Linux host" are not
+the same claim for anything touching filesystem permissions under Docker.
+
+`bareos-api` never runs as root at all (`USER 1000` from `ENTRYPOINT`), so
+it needs no added capabilities beyond dropping everything.
 
 webui was verified empirically before writing any code: both flavors already
 self-drop privileges the same way the Bareos daemons and Apache do, so **no
@@ -473,28 +503,39 @@ entry. A backup-only smoke test cannot catch this — it's restore-specific.
 
 `bconsole` connecting only proves the director's TCP listener and console
 auth work — it exercises none of the actual write paths this hardening
-touches. Verified locally against the hardened compose files instead with a
-real `backup-bareos-fd` job followed by a full restore of everything it
-wrote (fd reads its fileset under `cap_drop: ALL`, sd writes a volume into
-the archive/storage directory — a bind mount nested under a tmpfs-mounted
-parent, under `read_only: true` — and dir inserts the resulting file
-attributes into the catalog), with container logs swept for `Permission
-denied`/`EPERM`/read-only-fs errors on every run:
+touches (see the `DAC_OVERRIDE`/`FOWNER` writeup above for how much that
+mattered in practice). The trustworthy verification here comes from two
+sources: `run-compose.yml` itself running on GitHub's native `ubuntu-latest`
+runner — a genuine Linux bind mount, not a macOS one — and, for the deeper
+functional check, a real `backup-bareos-fd` job followed by a full restore
+of everything it wrote (fd reads its fileset under `cap_drop: ALL`, sd
+writes a volume into the archive/storage directory — a bind mount nested
+under a tmpfs-mounted parent, under `read_only: true` — and dir inserts the
+resulting file attributes into the catalog), run locally but against
+genuine Docker **volumes** rather than macOS bind mounts, with container
+logs swept for `Permission denied`/`EPERM`/`Cannot change mode`/read-only-fs
+errors on every run:
 
-| Version | Fresh `DB_INIT=true` | Restart | Backup job | Restore job | `/docs` + webui HTTP |
-|:--|:-:|:-:|:-:|:-:|:-:|
-| 25-alpine | ✓ | ✓ | ✓ | ✓ | ✓ |
-| 25-ubuntu | ✓ | ✓ | ✓ | ✓ | ✓ |
-| 24-alpine | ✓ | – | – | – | – |
-| 23-alpine | ✓ | – | – | – | – |
-| 23-ubuntu | – | – | – | – | – |
-| 24-ubuntu | – | – | – | – | – |
+| Version | CI: fresh init + `bconsole` (real Linux bind mount) | Backup + restore job (genuine Docker volume) |
+|:--|:-:|:-:|
+| 25-alpine | ✓ | ✓ |
+| 25-ubuntu | ✓ | ✓ |
+| 24-alpine | – | – |
+| 23-alpine | – | – |
+| 23-ubuntu | – | – |
+| 24-ubuntu | – | – |
 
-(The `BackupCatalog` job, the other job the default config ships, fails on
-*both* hardened and unhardened stacks with `Script signature has changed:
-usage /etc/bareos/scripts/make_catalog_backup CatalogName` — a pre-existing
-config/script mismatch unrelated to this ticket, confirmed by isolating
-against the unhardened baseline. Worth its own issue.)
+24-alpine and 23-alpine were run successfully earlier in this branch's
+history, but *before* the `DAC_OVERRIDE`/`FOWNER` fix landed, and only
+through the macOS bind-mount path that turned out not to catch the bug that
+fix addresses — so that earlier result is stale evidence, not a current
+pass, and both are listed unverified here until rerun against the final
+compose files. (The `BackupCatalog` job, the other job the default config
+ships, fails on *both* hardened and unhardened stacks with `Script
+signature has changed: usage /etc/bareos/scripts/make_catalog_backup
+CatalogName` — a pre-existing config/script mismatch unrelated to this
+ticket, confirmed by isolating against the unhardened baseline. Worth its
+own issue.)
 
 23-ubuntu and 24-ubuntu could **not** be verified locally at all —
 `bareos-webui:23-ubuntu`'s php-fpm segfaults under this machine's QEMU
