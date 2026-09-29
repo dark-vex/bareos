@@ -171,11 +171,18 @@ dependency beyond the Director connection.
 
 ## Usage
 
-Copy `.env.dist` to `.env` and change the passwords before production use:
+Copy `.env.dist` to `.env` and set every `*_PASSWORD` before starting the
+stack — they ship empty and containers refuse to start until you do; see
+[Secrets](#secrets) below.
 
 ```bash
 cp .env.dist .env
 ```
+
+The bundled `postgres` service requires
+`POSTGRES_INITDB_ARGS=--encoding=SQL_ASCII` (already set in the compose
+files) because the Bareos catalog schema needs that encoding — keep it if you
+customize the database service.
 
 Start the default stack:
 
@@ -211,6 +218,58 @@ proxy with TLS in front of them, or change the port mapping (for example
 `8080:9100` instead of `127.0.0.1:8080:9100`) if you really need direct
 remote access. The storage daemon port `9103` stays published on all
 interfaces because file daemons on other hosts connect to it.
+
+## Secrets
+
+Every `*_PASSWORD` variable in `.env.dist` ships empty. On startup, each
+entrypoint refuses to run if a password it needs is empty, or still equals a
+retired example value that used to ship in `.env.dist` (e.g.
+`ThisIsMySecretDBp4ssw0rd`) — this catches `.env` files copied from an old
+version of this repo, not just unset variables.
+
+Every `*_PASSWORD` also has a `*_FILE` variant for the
+[Docker/Kubernetes secrets convention][docker-secrets-href] (the same one
+used by the official `postgres`/`mysql` images): point it at a file
+containing the password instead of setting the variable directly. Setting
+both the plain variable and its `_FILE` variant for the same password is
+rejected. The file's contents are read as-is (trailing newlines stripped); a
+file containing only a newline is treated as empty and rejected.
+
+Supported `*_FILE` variables:
+
+| Component | Plain variable | `_FILE` variable |
+|:--|:--|:--|
+| director-pgsql | `DB_PASSWORD` | `DB_PASSWORD_FILE` |
+| director-pgsql | `DB_ADMIN_PASSWORD`* | `DB_ADMIN_PASSWORD_FILE` |
+| director-pgsql, storage | `BAREOS_SD_PASSWORD` | `BAREOS_SD_PASSWORD_FILE` |
+| director-pgsql, client | `BAREOS_FD_PASSWORD` | `BAREOS_FD_PASSWORD_FILE` |
+| director-pgsql | `BAREOS_WEBUI_PASSWORD` | `BAREOS_WEBUI_PASSWORD_FILE` |
+| api | `JWT_SECRET` | `JWT_SECRET_FILE` |
+| bareos-db-migration | `MYSQL_DB_PASSWORD` | `MYSQL_DB_PASSWORD_FILE` |
+| bareos-db-migration | `PGSQL_DB_PASSWORD` | `PGSQL_DB_PASSWORD_FILE` |
+| bareos-db-migration | `PGSQL_ADMIN_PASSWORD` | `PGSQL_ADMIN_PASSWORD_FILE` |
+
+\* `DB_ADMIN_PASSWORD` is only required when `DB_INIT=true` or
+`DB_UPDATE=true` (it's only used to connect as the PostgreSQL admin user for
+schema init/migration) — otherwise it can be left unset.
+
+`MYSQL_ADMIN_PASSWORD` has no `_FILE` variant: the `bareos-db-migration`
+entrypoint never reads it directly, it's only forwarded by
+`bareos-db-migration/docker-compose.yml` to the official `mysql` image as
+`MYSQL_ROOT_PASSWORD`, which already supports `MYSQL_ROOT_PASSWORD_FILE`
+natively — pass that instead if you need file-based secrets there.
+
+The bundled compose files (`docker-compose-*.yml`) still pass passwords as
+plain `environment:` variables, not Docker Compose `secrets:` — if you want
+`secrets:`-based wiring, adapt the compose files yourself; the entrypoints
+support either since `_FILE` just needs a readable file path.
+
+**Rotation caveat:** entrypoints only write daemon configs on first run,
+gated by a sentinel file (`/etc/bareos/bareos-config.control` or
+equivalent). Changing a password in `.env` and restarting an
+already-initialized container does **not** rotate the password baked into
+that daemon's config — remove the sentinel file (or edit the config
+directly) to pick up a new value.
 
 ## Access
 
@@ -293,6 +352,11 @@ if you want something that pulls out of the box.
 If the target PostgreSQL database is empty or does not exist, the migration
 tool creates it. Keep `.env` available with the required database passwords.
 
+The same empty-by-default, refuse-on-placeholder behavior described in
+[Secrets](#secrets) applies to the migration tool's password variables
+(`MYSQL_DB_PASSWORD`, `PGSQL_DB_PASSWORD`, `PGSQL_ADMIN_PASSWORD`, each with
+a matching `_FILE` variant).
+
 ## Building Images
 
 Build a specific component/version:
@@ -339,6 +403,7 @@ build can download them.
 [docker-compose-href]: https://docs.docker.com/compose
 [cosign-href]: https://github.com/sigstore/cosign
 [docker-href]: https://docs.docker.com/engine/install/
+[docker-secrets-href]: https://docs.docker.com/engine/swarm/secrets/
 [docker-img-dir]: https://img.shields.io/docker/pulls/darkvex/bareos-director?label=bareos-director&logo=docker
 [docker-img-fd]: https://img.shields.io/docker/pulls/darkvex/bareos-client?label=bareos-client&logo=docker
 [docker-img-sd]: https://img.shields.io/docker/pulls/darkvex/bareos-storage?label=bareos-storage&logo=docker

@@ -46,7 +46,12 @@ while read -r app version arch _ ; do
   fi
 
   if [[ "$app" == "director" ]] ; then
-    ARGS=(-e CI_TEST=true)
+    ARGS=(-e CI_TEST=true -e DB_PASSWORD=citest -e BAREOS_SD_PASSWORD=citest \
+      -e BAREOS_FD_PASSWORD=citest -e BAREOS_WEBUI_PASSWORD=citest)
+  elif [[ "$app" == "storage" ]] ; then
+    ARGS=(-e BAREOS_SD_PASSWORD=citest)
+  elif [[ "$app" == "client" ]] ; then
+    ARGS=(-e BAREOS_FD_PASSWORD=citest)
   fi
 
   # Check if Dockerfile exist
