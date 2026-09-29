@@ -198,6 +198,16 @@ if [[ "$*" == *"access_token"* ]]; then
   exit 0
 fi
 last="${@: -1}"
+if [[ "${last}" == 'if type == "object" and has("results") then (.results | type) else "invalid" end' ]]; then
+  input=$(cat)
+  trimmed="$(printf '%s' "${input}" | tr -d '[:space:]')"
+  if [[ "${trimmed}" == \{*\"results\":\[*\]* ]]; then
+    echo "array"
+  else
+    echo "invalid"
+  fi
+  exit 0
+fi
 if [[ "${last}" == '.results[] | [.name, .digest] | @tsv' ]]; then
   input=$(cat)
   objs=$(printf '%s' "${input}" | grep -oE '\{[^{}]*\}')
@@ -243,6 +253,17 @@ case "$*" in
     exit 0
     ;;
   *"/tags/?page_size=100"*)
+    if [[ -n "${DOCKERHUB_MALFORMED_COUNT:-}" ]]; then
+      counter_file="${DOCKERHUB_MALFORMED_COUNTER_FILE:-/tmp/dockerhub_malformed_counter}"
+      count=0
+      [[ -f "${counter_file}" ]] && count=$(cat "${counter_file}")
+      if [[ "${count}" -lt "${DOCKERHUB_MALFORMED_COUNT}" ]]; then
+        count=$((count + 1))
+        echo "${count}" > "${counter_file}"
+        echo 'null'
+        exit 0
+      fi
+    fi
     if [[ "$*" == *"page=2"* && -n "${DOCKERHUB_TAGS_PAGE2_FILE:-}" ]]; then
       cat "${DOCKERHUB_TAGS_PAGE2_FILE}"
     elif [[ -n "${DOCKERHUB_TAGS_PAGE1_FILE:-}" ]]; then
@@ -288,6 +309,7 @@ reset_env() {
   unset FAIL_WIZ_SCAN
   unset REGCTL_TAGS_DIR REGCTL_DIGEST_FAIL_MATCH
   unset DOCKERHUB_TAGS_PAGE1_FILE DOCKERHUB_TAGS_PAGE2_FILE
+  unset DOCKERHUB_MALFORMED_COUNT DOCKERHUB_MALFORMED_COUNTER_FILE
 }
 
 base_env() {
@@ -580,6 +602,15 @@ JSON
   else
     fail "expected at least one Docker Hub DELETE call"
   fi
+
+  # Regression pin: the Docker Hub prune loop must authenticate fresh, not
+  # reuse the token minted for the earlier rm_tags_dockerhub cleanup — a
+  # live run observed that reused token expiring by the time the (much
+  # slower) primary-registry prune loop finished, silently no-opping the
+  # entire Docker Hub prune. Two separate token fetches proves this can't
+  # regress.
+  auth_token_fetches=$(grep -cE "^curl --fail -sS -H Content-Type: application/json --data-binary @- https://hub\.docker\.com/v2/auth/token\$" "${CALL_LOG}")
+  assert_eq "${auth_token_fetches}" "2" "Docker Hub auth token fetches"
 }
 
 scenario_prune_skipped_on_failed_run() {
@@ -663,6 +694,63 @@ JSON
   fi
 }
 
+scenario_prune_dockerhub_retries_malformed_response() {
+  echo "--- scenario (j): prune retries a malformed Docker Hub tags response and succeeds ---"
+  setup_fixture
+  reset_env
+  base_env
+  export INPUT_DOCKERHUB_USER="dhuser"
+  export INPUT_DOCKERHUB_PASS="dhpass"
+
+  # Simulate the transient case actually observed in production: the Hub
+  # API returns a bare `null` body (not {"results": [...], ...}) for the
+  # first 2 attempts, then a normal response on the 3rd.
+  export DOCKERHUB_MALFORMED_COUNT=2
+  DOCKERHUB_MALFORMED_COUNTER_FILE="${WORKDIR}/dockerhub_malformed_counter"
+  export DOCKERHUB_MALFORMED_COUNTER_FILE
+  dh_orphan_hex=$(printf '%s' "dockerhub-orphan-fixture-j" | sha256sum | cut -d' ' -f1)
+  DOCKERHUB_TAGS_PAGE1_FILE="${WORKDIR}/dockerhub_tags_page1.json"
+  cat > "${DOCKERHUB_TAGS_PAGE1_FILE}" <<JSON
+{"results":[{"name":"24","digest":"sha256:3333333333333333333333333333333333333333333333333333333333333333"},{"name":"sha256-${dh_orphan_hex}.att","digest":"sha256:4444444444444444444444444444444444444444444444444444444444444444"}],"next":null}
+JSON
+  export DOCKERHUB_TAGS_PAGE1_FILE
+
+  run_entrypoint
+  local rc=$?
+
+  assert_eq "${rc}" "0" "exit code"
+  assert_line "curl -sS -o /dev/null -w %{http_code} -X DELETE -H @[^ ]+ https://hub.docker.com/v2/repositories/darkvex/bareos-director-pgsql/tags/sha256-${dh_orphan_hex}\.att/"
+  # No warning on a retry that eventually succeeds — only prove the retries
+  # actually happened (3 GET attempts against the tags-list endpoint).
+  get_attempts=$(grep -cE "^curl -sS -H @[^ ]+ https://hub\.docker\.com/v2/repositories/darkvex/bareos-director-pgsql/tags/\?page_size=100\$" "${CALL_LOG}")
+  assert_eq "${get_attempts}" "3" "Docker Hub tags-list GET attempts"
+}
+
+scenario_prune_dockerhub_fails_closed_after_exhausting_retries() {
+  echo "--- scenario (k): prune fails closed after exhausting Docker Hub retries ---"
+  setup_fixture
+  reset_env
+  base_env
+  export INPUT_DOCKERHUB_USER="dhuser"
+  export INPUT_DOCKERHUB_PASS="dhpass"
+
+  # Always malformed — never recovers within the retry budget.
+  export DOCKERHUB_MALFORMED_COUNT=999
+  DOCKERHUB_MALFORMED_COUNTER_FILE="${WORKDIR}/dockerhub_malformed_counter"
+  export DOCKERHUB_MALFORMED_COUNTER_FILE
+
+  run_entrypoint
+  local rc=$?
+
+  assert_eq "${rc}" "0" "exit code"
+  if grep -qE "^curl .*-X DELETE.*hub\.docker\.com.*/tags/sha256-" "${CALL_LOG}"; then
+    fail "prune deleted a Docker Hub sig/att tag despite every page fetch being malformed"
+  fi
+  if ! grep -qF "unexpected Docker Hub tags response for darkvex/bareos-director-pgsql after 3 attempts" "${WORKDIR}/output.log"; then
+    fail "expected a warning that retries were exhausted"
+  fi
+}
+
 scenario_all_success
 scenario_single_failed_push
 scenario_failed_manifest_create
@@ -672,6 +760,8 @@ scenario_wiz_scan_failure
 scenario_prune_orphaned_sig_att_tags
 scenario_prune_skipped_on_failed_run
 scenario_prune_fails_closed_on_unresolvable_digest
+scenario_prune_dockerhub_retries_malformed_response
+scenario_prune_dockerhub_fails_closed_after_exhausting_retries
 
 if [[ "${FAILURES}" -eq 0 ]]; then
   echo "All scenarios passed."

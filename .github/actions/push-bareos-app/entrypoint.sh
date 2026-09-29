@@ -32,6 +32,37 @@ record_digest() {
   fi
 }
 
+# Docker Hub's Hub API access token is short-lived (~5 minutes). Any caller
+# that needs one must fetch it right before use, not reuse a token obtained
+# earlier in the run — the primary-registry prune loop alone can take
+# several minutes (each regctl call is a real network round-trip), which is
+# long enough for a token minted before it to expire by the time Docker
+# Hub's own turn comes up. Prints nothing and returns the header file path
+# on success; prints a warning and returns non-zero on failure.
+dockerhub_authenticate() {
+  local response_file token header_file
+  response_file=$(mktemp)
+  chmod 600 "${response_file}"
+  if ! (set -o pipefail
+        jq -n '{identifier: env.INPUT_DOCKERHUB_USER, secret: env.INPUT_DOCKERHUB_PASS}' \
+          | curl --fail -sS -H 'Content-Type: application/json' --data-binary @- \
+              https://hub.docker.com/v2/auth/token) > "${response_file}"; then
+    echo "::warning:: failed to authenticate to Docker Hub API" >&2
+    rm -f "${response_file}"
+    return 1
+  fi
+  token=$(jq -r '.access_token' < "${response_file}")
+  rm -f "${response_file}"
+  if [[ -z "${token}" || "${token}" == "null" ]]; then
+    echo "::warning:: failed to authenticate to Docker Hub API" >&2
+    return 1
+  fi
+  header_file=$(mktemp)
+  chmod 600 "${header_file}"
+  printf 'Authorization: Bearer %s\n' "${token}" > "${header_file}"
+  printf '%s' "${header_file}"
+}
+
 # Enable experimental feature in Docker
 export DOCKER_CLI_EXPERIMENTAL="enabled"
 
@@ -272,26 +303,8 @@ if [[ ${#rm_tags[@]} -gt 0 ]]; then
 fi
 
 dockerhub_auth_header_file=""
-if [[ ${dockerhub_enabled} -eq 1 && ( ${#rm_tags_dockerhub[@]} -gt 0 || ${#repo_dockerhub_seen[@]} -gt 0 ) ]]; then
-  dockerhub_login_response_file=$(mktemp)
-  chmod 600 "${dockerhub_login_response_file}"
-  if ! (set -o pipefail
-        jq -n '{identifier: env.INPUT_DOCKERHUB_USER, secret: env.INPUT_DOCKERHUB_PASS}' \
-          | curl --fail -sS -H 'Content-Type: application/json' --data-binary @- \
-              https://hub.docker.com/v2/auth/token) > "${dockerhub_login_response_file}"; then
-    echo "::warning:: failed to authenticate to Docker Hub API"
-    rm -f "${dockerhub_login_response_file}"
-  else
-    dockerhub_token=$(jq -r '.access_token' < "${dockerhub_login_response_file}")
-    rm -f "${dockerhub_login_response_file}"
-    if [[ -z "${dockerhub_token}" || "${dockerhub_token}" == "null" ]]; then
-      echo "::warning:: failed to authenticate to Docker Hub API"
-    else
-      dockerhub_auth_header_file=$(mktemp)
-      chmod 600 "${dockerhub_auth_header_file}"
-      printf 'Authorization: Bearer %s\n' "${dockerhub_token}" > "${dockerhub_auth_header_file}"
-    fi
-  fi
+if [[ ${dockerhub_enabled} -eq 1 && ${#rm_tags_dockerhub[@]} -gt 0 ]]; then
+  dockerhub_auth_header_file=$(dockerhub_authenticate) || dockerhub_auth_header_file=""
 fi
 
 if [[ ${#rm_tags_dockerhub[@]} -gt 0 && -n "${dockerhub_auth_header_file}" ]]; then
@@ -310,6 +323,7 @@ if [[ ${#rm_tags_dockerhub[@]} -gt 0 && -n "${dockerhub_auth_header_file}" ]]; t
     fi
   done
 fi
+[[ -n "${dockerhub_auth_header_file}" ]] && rm -f "${dockerhub_auth_header_file}"
 echo ::endgroup::
 
 # Prune orphaned cosign sig/att tags: any sha256-<hex>.sig / .att tag in a
@@ -385,7 +399,15 @@ else
     done
   done
 
-  if [[ ${dockerhub_enabled} -eq 1 && -n "${dockerhub_auth_header_file}" ]]; then
+  # Fresh token, not the one (if any) obtained above for the rm_tags_dockerhub
+  # cleanup: the primary-registry loop just above can take several minutes
+  # (a real network round-trip per tag), long enough for that earlier token
+  # to have expired by now.
+  prune_dockerhub_auth_header_file=""
+  if [[ ${dockerhub_enabled} -eq 1 && ${#repo_dockerhub_seen[@]} -gt 0 ]]; then
+    prune_dockerhub_auth_header_file=$(dockerhub_authenticate) || prune_dockerhub_auth_header_file=""
+  fi
+  if [[ -n "${prune_dockerhub_auth_header_file}" ]]; then
     for repo in "${!repo_dockerhub_seen[@]}"; do
       dh_namespace="${repo%%/*}"
       dh_repo="${repo#*/}"
@@ -401,7 +423,32 @@ else
       live_complete=1
       next_url="https://hub.docker.com/v2/repositories/${dh_namespace}/${dh_repo}/tags/?page_size=100"
       while [[ -n "${next_url}" && "${next_url}" != "null" && ${live_complete} -eq 1 ]]; do
-        tags_response=$(curl -sS -H @"${dockerhub_auth_header_file}" "${next_url}")
+        # An expired/invalid token (or any other Hub API hiccup) returns a
+        # body like {"message":"unauthorized",...} — no "results" key at
+        # all. That's a different failure than "a real tag has no digest
+        # field" and needs its own check: without it, `.results[]` on a
+        # non-array just iterates zero times, which looks identical to
+        # "this page had no matching tags" and lets the whole prune for this
+        # repo silently no-op instead of failing closed. The fresh token
+        # fetched above should make this a non-issue in practice, but a
+        # short retry costs nothing and covers any other transient hiccup;
+        # if it's still malformed after 3 attempts, fail closed for this
+        # repo same as everywhere else here.
+        page_ok=0
+        for attempt in 1 2 3; do
+          tags_response=$(curl -sS -H @"${prune_dockerhub_auth_header_file}" "${next_url}")
+          results_type=$(printf '%s' "${tags_response}" | jq -r 'if type == "object" and has("results") then (.results | type) else "invalid" end' 2>/dev/null)
+          if [[ "${results_type}" == "array" ]]; then
+            page_ok=1
+            break
+          fi
+          [[ ${attempt} -lt 3 ]] && sleep "$((attempt * 2))"
+        done
+        if [[ ${page_ok} -ne 1 ]]; then
+          echo "::warning:: unexpected Docker Hub tags response for ${repo} after 3 attempts; skipping prune for this repo"
+          live_complete=0
+          break
+        fi
         while IFS=$'\t' read -r name digest; do
           [[ -z "${name}" ]] && continue
           if [[ "${name}" =~ ${sig_att_re} ]]; then
@@ -428,7 +475,7 @@ else
           kept_count=$((kept_count + 1))
         else
           dockerhub_prune_status=$(curl -sS -o /dev/null -w '%{http_code}' -X DELETE \
-            -H @"${dockerhub_auth_header_file}" \
+            -H @"${prune_dockerhub_auth_header_file}" \
             "https://hub.docker.com/v2/repositories/${dh_namespace}/${dh_repo}/tags/${tag}/")
           if [[ "${dockerhub_prune_status}" =~ ^(200|202|204|404)$ ]]; then
             echo "pruned: ${repo}:${tag}"
@@ -439,12 +486,12 @@ else
         fi
       done
     done
+    [[ -n "${prune_dockerhub_auth_header_file}" ]] && rm -f "${prune_dockerhub_auth_header_file}"
   fi
 
   echo "Prune summary: pruned=${pruned_count} kept=${kept_count}"
 fi
 
-[[ -n "${dockerhub_auth_header_file}" ]] && rm -f "${dockerhub_auth_header_file}"
 echo ::endgroup::
 
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
