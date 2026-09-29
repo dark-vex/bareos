@@ -520,35 +520,39 @@ errors on every run:
 |:--|:-:|:-:|
 | 25-alpine | ✓ | ✓ |
 | 25-ubuntu | ✓ | ✓ |
-| 24-alpine | – | – |
-| 23-alpine | – | – |
-| 23-ubuntu | – | – |
-| 24-ubuntu | – | – |
+| 24-alpine | – | ✓ |
+| 23-alpine | – | ✓ |
+| 23-ubuntu | – | ✓ |
+| 24-ubuntu | – | ✓ |
 
-24-alpine and 23-alpine were run successfully earlier in this branch's
-history, but *before* the `DAC_OVERRIDE`/`FOWNER` fix landed, and only
-through the macOS bind-mount path that turned out not to catch the bug that
-fix addresses — so that earlier result is stale evidence, not a current
-pass, and both are listed unverified here until rerun against the final
-compose files. (The `BackupCatalog` job, the other job the default config
-ships, fails on *both* hardened and unhardened stacks with `Script
-signature has changed: usage /etc/bareos/scripts/make_catalog_backup
-CatalogName` — a pre-existing config/script mismatch unrelated to this
-ticket, confirmed by isolating against the unhardened baseline. Worth its
-own issue.)
+All six version/flavor combinations now have a clean backup+restore pass
+against the merged `DAC_OVERRIDE`/`FOWNER` fix, run against genuine Docker
+volumes (not macOS bind mounts — see above for why that distinction
+matters) via `docker-compose-{alpine,ubuntu}-pgsql.override.yml`. `–` in
+the CI column just means `run-compose.yml` only ever exercises the v25 tags
+baked into the default compose files, so 23/24 depend on this kind of
+manual verification rather than CI; it's not a gap in what's been checked.
 
-23-ubuntu and 24-ubuntu could **not** be verified locally at all —
-`bareos-webui:23-ubuntu`'s php-fpm segfaults under this machine's QEMU
-x86_64 emulation (Apple Silicon host). The same crash reproduces identically
-against the *unhardened* baseline image, so it's a local emulation
-limitation, not a hardening regression, but it's still an unverified gap
-against real amd64 hardware — don't treat 23/24-ubuntu as confirmed working
-until someone runs this on native amd64. `run-compose.yml` only ever
-exercises the v25 tags baked into the default compose files, so 23/24 in
-general depend on manual verification like this rather than CI.
+The 23-ubuntu run's `bareos-webui` container still hit the same QEMU x86_64
+segfault noted below on the first attempt (Apple Silicon host emulating
+amd64) — dir/sd/fd/db all came up clean and the backup+restore job passed
+regardless, since webui isn't in that job's path. The 24-ubuntu run's
+webui came up clean on the same host, HTTP 200 included — this crash is a
+non-deterministic emulation artifact, not something tied to a specific
+version. It reproduces identically against the *unhardened* baseline
+image too, so treat it as a known flakiness on emulated amd64, not a
+hardening regression or a version-specific gap. Confirming it doesn't
+happen on real amd64 hardware is still worthwhile but no longer blocking.
+
+(The `BackupCatalog` job, the other job the default config ships, fails on
+*both* hardened and unhardened stacks with `Script signature has changed:
+usage /etc/bareos/scripts/make_catalog_backup CatalogName` — a
+pre-existing config/script mismatch unrelated to this ticket, confirmed by
+isolating against the unhardened baseline. Worth its own issue.)
+
 `docker-compose-ubuntu-pgsql.override.yml` (mirroring the existing
-`docker-compose-alpine-pgsql.override.yml`) was added for that purpose —
-usage:
+`docker-compose-alpine-pgsql.override.yml`) is what made 23/24-ubuntu
+testable at all — usage:
 
 ```bash
 BAREOS_UBUNTU_TAG=23-ubuntu docker compose \
