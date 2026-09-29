@@ -2,6 +2,19 @@
 services:
   bareos-dir:
     image: darkvex/bareos-director:25-alpine-pgsql
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN   # entrypoint chown fixups before the daemon's own setuid drop
+      - SETUID  # bareos-dir -u bareos internal privilege drop
+      - SETGID
+    read_only: true
+    tmpfs:
+      - /run/bareos
+      - /var/log/bareos
+      - /tmp # DB_INIT's make_bareos_tables writes a scratch .sql file here
     volumes:
       - /data/bareos/config/director:/etc/bareos
       - /data/bareos/data/director:/var/lib/bareos # required for MyCatalog backup
@@ -33,6 +46,37 @@ services:
 
   bareos-sd:
     image: darkvex/bareos-storage:25-alpine
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      # entrypoint's `find ... -exec chown` walk over /var/lib/bareos and
+      # /etc/bareos/bareos-sd.d is conditional (`! -user bareos`) and those
+      # paths are already baked bareos-owned, so it's a no-op on the parent
+      # dirs themselves in the default setup -- but it still chowns newly
+      # written archive files/dirs under the bind-mounted /var/lib/bareos/archive,
+      # and /dev/nst*/tape device nodes when a real tape device is attached.
+      - CHOWN
+      - SETUID  # bareos-sd -u bareos internal privilege drop
+      - SETGID
+    read_only: true
+    tmpfs:
+      - /run/bareos
+      # unlike the other daemons' entrypoints, sd's never chowns /var/log/bareos
+      # (no default Messages resource writes there, so this was never exercised
+      # until now); mode=1777 keeps it safe if an operator adds file logging --
+      # see the Container Hardening section in the README for the mechanism.
+      - /var/log/bareos:mode=1777
+      # NOT chowned by the entrypoint (its conditional chown never touches
+      # this path, since it's already baked bareos-owned) -- needed anyway
+      # because the sd daemon itself writes a bootstrap file directly at
+      # /var/lib/bareos/bareos-sd.<job>.bootstrap during restores (a sibling
+      # of /var/lib/bareos/archive, not inside it). Missing this breaks
+      # restores with "Could not create bootstrap file ... Read-only file
+      # system" even though backups succeed -- only surfaced by actually
+      # running a restore, not a backup.
+      - /var/lib/bareos
     ports:
       - 9103:9103
     volumes:
@@ -43,17 +87,48 @@ services:
 
   bareos-fd:
     image: darkvex/bareos-client:25-alpine
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN   # entrypoint chown fixups (/etc/bareos, /run/bareos, /var/log/bareos, /var/lib/bareos)
+      - SETUID  # su-exec drop to BAREOS_DAEMON_USER
+      - SETGID
+    read_only: true
+    tmpfs:
+      - /run/bareos
+      - /var/log/bareos
+      - /var/lib/bareos # not bind-mounted (only /var/lib/bareos-director is); entrypoint chowns it directly
+      - /tmp # bundled RestoreFiles job's default `Where` target (/tmp/bareos-restores);
+             # confirmed by actually running a restore, not inferred
     volumes:
       - /data/bareos/config/client:/etc/bareos
       - /data/bareos/data/director:/var/lib/bareos-director # required for MyCatalog backup
     environment:
       - BAREOS_FD_PASSWORD=${BAREOS_FD_PASSWORD} # defined in .env file
       - FORCE_ROOT=false
-      #- PUID=1500 # force bareos user ID
+      #- PUID=1500 # force bareos user ID -- NOTE: incompatible with read_only above (usermod
+      #  writes /etc/passwd, which is on the read-only root fs); drop read_only if you enable this
       #- PGID=1500 # force bareos group ID
 
+  # bareos-webui: nginx.conf ships `user nginx;` and the entrypoint edits
+  # /etc/nginx/* (not a bind mount) on every start, so read_only:true is not
+  # applied here -- it would either block that rewrite or (with a tmpfs over
+  # /etc/nginx) erase the image-baked config entirely. cap_drop/no-new-privileges
+  # still apply: nginx already self-drops workers to the `nginx` user.
   bareos-webui:
     image: darkvex/bareos-webui:25-alpine
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID      # nginx master (root) drops worker processes to the `nginx` user
+      - SETGID
+      - DAC_OVERRIDE # Alpine's nginx package ships /var/lib/nginx as nginx:nginx 0750;
+                     # without this, root can't even traverse into it to create tmp/log paths
+      - CHOWN       # nginx master chowns those freshly-created tmp/log paths to `nginx`
     ports:
       - 127.0.0.1:8080:9100
     environment:
@@ -70,6 +145,16 @@ services:
   php-fpm:
     image: darkvex/bareos-webui:25-alpine
     entrypoint: ["/usr/local/sbin/php-fpm"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID # php-fpm master (root) drops worker processes to `nobody` (www.conf default)
+      - SETGID
+    read_only: true
+    tmpfs:
+      - /tmp # PHP session/upload temp files
     volumes:
       - /data/bareos/config/webui:/etc/bareos-webui
       - /data/bareos/data/webui:/usr/share/bareos-webui
@@ -95,8 +180,16 @@ services:
       retries: 5
       start_period: 20s
 
+  # read_only is NOT applied here: pip installs its packages (incl. the uvicorn
+  # entrypoint) into /home/bareos at build time, and the entrypoint rewrites
+  # /home/bareos/api.ini on every start -- a tmpfs at /home/bareos to allow that
+  # write shadows the whole image-baked install and breaks `uvicorn: not found`.
   bareos-api:
     image: darkvex/bareos-api:25-alpine
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL # already runs as USER 1000 from PID 1 -- no setuid/chown phase, no caps needed
     ports:
     - 127.0.0.1:8000:8000
     environment:

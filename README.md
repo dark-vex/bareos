@@ -334,6 +334,186 @@ cosign verify-attestation --type spdxjson "darkvex/bareos-director@${digest}" \
 Use `--type slsaprovenance` to verify the provenance attestation instead of
 the SBOM.
 
+## Container Hardening
+
+The example compose files (`docker-compose-alpine-pgsql.yml`,
+`docker-compose-ubuntu-pgsql.yml`) apply `security_opt: [no-new-privileges:true]`,
+a minimal `cap_drop: [ALL]` + `cap_add:` per service, and `read_only: true` +
+`tmpfs:` where that's safe, to every Bareos-authored service (`bareos-dir`,
+`bareos-sd`, `bareos-fd`, `bareos-webui`, the alpine `php-fpm` sidecar, and
+`bareos-api`). `bareos-db` (postgres) and `smtpd` (exim) are intentionally
+**not** hardened here — they're third-party images outside this ticket's
+scope; hardening them is a natural follow-up.
+
+### Why each capability is there
+
+Director, Storage and Client/FD all start as root and drop privileges
+themselves (Bareos' own `-u bareos` flag for dir/sd, `su-exec`/`setpriv` in
+the FD entrypoint) — this needs `CAP_CHOWN` (entrypoint permission fixups)
+and `CAP_SETUID`/`CAP_SETGID` (the drop itself). `bareos-api` never runs as
+root at all (`USER 1000` from `ENTRYPOINT`), so it needs no added
+capabilities beyond dropping everything.
+
+webui was verified empirically before writing any code: both flavors already
+self-drop privileges the same way the Bareos daemons and Apache do, so **no
+Dockerfile or entrypoint changes were needed**:
+
+- alpine: nginx ships `user nginx;` in `nginx.conf`, and php-fpm's `www.conf`
+  ships `user = nobody` / `group = nobody` — both untouched by this repo's
+  own `zz-docker.conf` overlay.
+- ubuntu: Apache uses the standard Debian `APACHE_RUN_USER=www-data` /
+  `APACHE_RUN_GROUP=www-data` envvars, and php-fpm's `www.conf` ships
+  `user = www-data` / `group = www-data`.
+
+Both still need `CAP_SETUID`/`CAP_SETGID` for that master-to-worker drop, and
+`CAP_CHOWN` for the socket/tmp-dir handoff. Two capabilities were only found
+necessary by actually running the hardened containers, not by reading source:
+
+- `CAP_DAC_OVERRIDE` on **both** webui flavors — Alpine's `bareos-webui-nginx`
+  package ships `/var/lib/nginx` as `nginx:nginx 0750`, and Debian's php-fpm
+  package ships `/run/php` as `www-data:www-data 0755`. Without this
+  capability, root is evaluated as "other" against those modes and can't even
+  traverse into them — `cap_drop: ALL` removes root's usual free pass around
+  file permission checks, it isn't only about setuid/setgid.
+- `CAP_NET_BIND_SERVICE` on ubuntu webui only — Apache listens on port 80.
+  (The alpine flavor listens on 9100, so it doesn't need this.)
+
+### `read_only` exceptions
+
+Two services deliberately do **not** get `read_only: true`, because a tmpfs
+mount hides whatever the image baked in at that same path rather than
+overlaying it:
+
+- **webui** (both flavors): the entrypoint unconditionally rewrites
+  `/etc/nginx/http.d/bareos-webui.conf` (alpine) or
+  `/etc/apache2/sites-available/000-default.conf` (ubuntu) on *every* start —
+  neither path is a bind mount. Making `/etc/nginx` or `/etc/apache2`
+  read-only blocks that rewrite outright; tmpfs-mounting them instead erases
+  the whole image-baked config directory before the entrypoint even runs.
+- **api**: `pip install` lands the `uvicorn` entrypoint and all site-packages
+  under `/home/bareos` at build time, and the entrypoint rewrites
+  `/home/bareos/api.ini` on every start. A tmpfs at `/home/bareos` (needed to
+  allow that write under `USER 1000`, which has no root phase to `chown` a
+  fresh mount) shadows the pip install too, breaking the container with
+  `uvicorn: not found`. Confirmed by actually running it, not inferred.
+
+### The tmpfs-inherits-baked-mode gotcha
+
+Testing surfaced an undocumented Docker behavior: a bare `tmpfs:` entry
+doesn't reliably default to the usual `/tmp`-style `1777`. When the target
+path already exists in the image (as most of these do — the Dockerfiles
+`mkdir`/package-install them with specific ownership), the tmpfs mount that
+replaces it seems to inherit that existing *mode* while resetting the
+*owner* to root. A path the image ships as `bareos:bareos 0755` becomes
+`root:root 0755` once tmpfs-mounted — root can still write it (owner match),
+but the unprivileged daemon user cannot, silently, with no container-level
+failure. Reproduced directly against `alpine:3.24`/`ubuntu:noble` (which
+lack these paths and correctly default to `1777`) versus the real
+`darkvex/bareos-*` images (which have them pre-baked and come up `0755`).
+
+This bit two services whose entrypoints don't `chown` a path this hardening
+now tmpfs-mounts:
+
+- **ubuntu director**'s entrypoint
+  (`director-pgsql/25-ubuntu/docker-entrypoint.sh`) only `chown`s
+  `/var/lib/bareos`, not `/var/log/bareos` — unlike its alpine counterpart,
+  which chowns both. Broke the daemon's own file logging (`fopen ...
+  bareos.log failed: Permission denied`) without failing the container or
+  the healthcheck.
+- **`bareos-sd`**, on both flavors, never `chown`s `/var/log/bareos` at all.
+  Invisible in this repo's default compose (storage's default Messages
+  resource has no `File =` destination, so nothing writes there), but a
+  latent trap for any operator who adds file-based sd logging later.
+
+Both are worked around in the compose files with `tmpfs:
+/var/log/bareos:mode=1777`, not an entrypoint edit — **this is a deliberate
+scope decision, not the only fix.** The cleaner long-term fix is a one-line
+`chown` added to the affected entrypoints (matching what alpine director and
+the FD entrypoints already do), but that needs a CI image rebuild before it
+would help anyone running the *published* `darkvex/bareos-*` tags, so
+`mode=1777` is what actually works against images available today. Revisit
+once those entrypoints are patched and rebuilt.
+
+`bareos-sd` also has a plain (no `mode=`) `/var/lib/bareos` tmpfs entry, and
+it's worth spelling out *why* since it's easy to mistake for the same
+gotcha: `/var/lib/bareos` on both flavors is already baked `bareos`-owned,
+so the entrypoint's own conditional `find ... -exec chown` never touches it
+— an earlier draft of this entry claimed "entrypoint chowns it directly,"
+which a from-source review correctly flagged as unverified, and removing
+the entry passed a backup-only test cleanly. Only running an actual
+*restore* surfaced the real reason it's needed: `bareos-sd` itself writes a
+bootstrap file straight to `/var/lib/bareos/bareos-sd.<job>.bootstrap` (a
+sibling of the `archive`/`storage` bind mount, not inside it) on every
+restore, and that fails outright under `read_only: true` without this
+entry. A backup-only smoke test cannot catch this — it's restore-specific.
+
+### Operational caveats
+
+- **FD and arbitrary host paths**: the bundled `SelfTest` fileset (what
+  `backup-bareos-fd` actually backs up by default) reads fine under
+  `cap_drop: ALL` — confirmed by running it. If you point `bareos-fd` at
+  arbitrary host paths instead, the restricted capability set here may not be
+  enough to read them — `FORCE_ROOT=true` (which skips the privilege drop
+  entirely) or adding `CAP_DAC_READ_SEARCH` are both options; that trade-off
+  is operator-specific and intentionally not a default.
+- **`PUID`/`PGID` vs. `read_only`**: the commented-out `PUID`/`PGID` options
+  in `bareos-fd` call `usermod -u`/`groupmod -g`, which write to
+  `/etc/passwd`/`/etc/group`. Those paths are read-only under this hardening,
+  so uncommenting `PUID`/`PGID` on an already-hardened `bareos-fd` will fail;
+  drop `read_only: true` for that service if you need them.
+- **Restores need `/tmp` writable on `bareos-fd`**: the bundled `RestoreFiles`
+  job's default `Where = "/tmp/bareos-restores"` failed outright
+  (`Cannot create directory /tmp/bareos-restores: ERR=Read-only file
+  system`) until `/tmp` was added to `bareos-fd`'s `tmpfs:` list — found only
+  by actually running a restore, not by reading source. If you redirect
+  restores elsewhere (a bind-mounted path), that path needs the same
+  attention.
+
+### Version coverage
+
+`bconsole` connecting only proves the director's TCP listener and console
+auth work — it exercises none of the actual write paths this hardening
+touches. Verified locally against the hardened compose files instead with a
+real `backup-bareos-fd` job followed by a full restore of everything it
+wrote (fd reads its fileset under `cap_drop: ALL`, sd writes a volume into
+the archive/storage directory — a bind mount nested under a tmpfs-mounted
+parent, under `read_only: true` — and dir inserts the resulting file
+attributes into the catalog), with container logs swept for `Permission
+denied`/`EPERM`/read-only-fs errors on every run:
+
+| Version | Fresh `DB_INIT=true` | Restart | Backup job | Restore job | `/docs` + webui HTTP |
+|:--|:-:|:-:|:-:|:-:|:-:|
+| 25-alpine | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 25-ubuntu | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 24-alpine | ✓ | – | – | – | – |
+| 23-alpine | ✓ | – | – | – | – |
+| 23-ubuntu | – | – | – | – | – |
+| 24-ubuntu | – | – | – | – | – |
+
+(The `BackupCatalog` job, the other job the default config ships, fails on
+*both* hardened and unhardened stacks with `Script signature has changed:
+usage /etc/bareos/scripts/make_catalog_backup CatalogName` — a pre-existing
+config/script mismatch unrelated to this ticket, confirmed by isolating
+against the unhardened baseline. Worth its own issue.)
+
+23-ubuntu and 24-ubuntu could **not** be verified locally at all —
+`bareos-webui:23-ubuntu`'s php-fpm segfaults under this machine's QEMU
+x86_64 emulation (Apple Silicon host). The same crash reproduces identically
+against the *unhardened* baseline image, so it's a local emulation
+limitation, not a hardening regression, but it's still an unverified gap
+against real amd64 hardware — don't treat 23/24-ubuntu as confirmed working
+until someone runs this on native amd64. `run-compose.yml` only ever
+exercises the v25 tags baked into the default compose files, so 23/24 in
+general depend on manual verification like this rather than CI.
+`docker-compose-ubuntu-pgsql.override.yml` (mirroring the existing
+`docker-compose-alpine-pgsql.override.yml`) was added for that purpose —
+usage:
+
+```bash
+BAREOS_UBUNTU_TAG=23-ubuntu docker compose \
+  -f docker-compose-ubuntu-pgsql.yml -f docker-compose-ubuntu-pgsql.override.yml up -d
+```
+
 ## Database Migration
 
 Bareos 21 and newer do not ship the MySQL catalog backend. To migrate an
