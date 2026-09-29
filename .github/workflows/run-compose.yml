@@ -75,8 +75,8 @@ jobs:
       - name: Dump compose state on failure
         if: failure()
         run: |
-          docker compose -f docker-compose-${{ matrix.module }}.yml ps
-          for c in $(docker compose -f docker-compose-${{ matrix.module }}.yml ps -q); do
+          docker compose -f docker-compose-${{ matrix.module }}.yml ps -a
+          for c in $(docker compose -f docker-compose-${{ matrix.module }}.yml ps -aq); do
             echo "=== $(docker inspect --format='{{.Name}}' "$c") health ==="
             docker inspect --format='{{json .State.Health}}' "$c" || true
             echo "=== $(docker inspect --format='{{.Name}}' "$c") logs (last 100) ==="
