@@ -7,41 +7,16 @@ services:
     cap_drop:
       - ALL
     cap_add:
-      - CHOWN   # entrypoint chown fixups before the daemon's own setuid drop
-      - SETUID  # bareos-dir -u bareos internal privilege drop
+      - CHOWN
+      - SETUID
       - SETGID
-      # /etc/bareos itself is baked bareos:root (or bareos:bareos on ubuntu);
-      # root's fsuid/fsgid don't match either, so without CAP_DAC_OVERRIDE
-      # root can't even write new top-level entries into it.
       - DAC_OVERRIDE
-      # On first run the entrypoint's tar extraction (GNU tar defaults to
-      # --same-owner --preserve-permissions as root) chowns each config
-      # entry to bareos:bareos, then chmods it back to its recorded mode --
-      # but by then the caller (root) is no longer that file's owner, and
-      # chmod() requires CAP_FOWNER whenever the caller's uid doesn't match
-      # the file's owner, regardless of which bits are being set. Without
-      # both of these, GNU tar reports "Cannot change mode to ...: Operation
-      # not permitted" (or "Cannot rename to ...") and aborts extraction,
-      # crashing the daemon before it can even start. Verified with a
-      # minimal tar/capability repro against a genuinely empty target (not
-      # a bind mount through Docker Desktop's macOS file-sharing layer,
-      # which does not faithfully reproduce these checks): CAP_CHOWN alone
-      # reproduces the failure; CAP_FOWNER alone or CAP_DAC_OVERRIDE alone
-      # each still fail differently; both together are required and
-      # sufficient. This affects alpine identically, not just ubuntu.
       - FOWNER
     read_only: true
     tmpfs:
       - /run/bareos
-      # NOTE: unlike its alpine counterpart, the ubuntu entrypoint's permission
-      # fixup only chowns /var/lib/bareos, not /var/log/bareos (the image
-      # normally ships that dir pre-owned by bareos:bareos, which a bare tmpfs
-      # mount here would otherwise silently replace with root:root and break
-      # the daemon's own logging). mode=1777 works around that without an
-      # entrypoint edit; fixing the ubuntu entrypoint to match alpine's chown
-      # list is a good follow-up.
       - /var/log/bareos:mode=1777
-      - /tmp # DB_INIT's make_bareos_tables writes a scratch .sql file here
+      - /tmp
     volumes:
       - /data/bareos/config/director:/etc/bareos
       - /data/bareos/data/director:/var/lib/bareos # required for MyCatalog backup
@@ -79,35 +54,15 @@ services:
     cap_drop:
       - ALL
     cap_add:
-      # entrypoint's `find ... -exec chown` walk over /var/lib/bareos and
-      # /etc/bareos/bareos-sd.d is conditional (`! -user bareos`) and those
-      # paths are already baked bareos-owned, so it's a no-op on the parent
-      # dirs themselves in the default setup -- but it still chowns newly
-      # written archive files/dirs under the bind-mounted /var/lib/bareos/storage,
-      # and /dev/nst*/tape device nodes when a real tape device is attached.
       - CHOWN
-      - SETUID  # bareos-sd -u bareos internal privilege drop
+      - SETUID
       - SETGID
-      # first-run tar extraction needs both of these -- see the detailed
-      # comment on bareos-dir's cap_add above.
       - DAC_OVERRIDE
       - FOWNER
     read_only: true
     tmpfs:
       - /run/bareos
-      # unlike the other daemons' entrypoints, sd's never chowns /var/log/bareos
-      # (no default Messages resource writes there, so this was never exercised
-      # until now); mode=1777 keeps it safe if an operator adds file logging --
-      # see the Container Hardening section in the README for the mechanism.
       - /var/log/bareos:mode=1777
-      # NOT chowned by the entrypoint (its conditional chown never touches
-      # this path, since it's already baked bareos-owned) -- needed anyway
-      # because the sd daemon itself writes a bootstrap file directly at
-      # /var/lib/bareos/bareos-sd.<job>.bootstrap during restores (a sibling
-      # of /var/lib/bareos/storage, not inside it). Missing this breaks
-      # restores with "Could not create bootstrap file ... Read-only file
-      # system" even though backups succeed -- only surfaced by actually
-      # running a restore, not a backup.
       - /var/lib/bareos
     ports:
       - 9103:9103
@@ -124,11 +79,9 @@ services:
     cap_drop:
       - ALL
     cap_add:
-      - CHOWN   # entrypoint chown fixups (/etc/bareos, /run/bareos, /var/log/bareos, /var/lib/bareos)
-      - SETUID  # su-exec drop to BAREOS_DAEMON_USER
+      - CHOWN
+      - SETUID
       - SETGID
-      # first-run tar extraction needs both of these -- see the detailed
-      # comment on bareos-dir's cap_add above.
       - DAC_OVERRIDE
       - FOWNER
     read_only: true
@@ -136,23 +89,16 @@ services:
       - /run/bareos
       - /var/log/bareos
       - /var/lib/bareos # not bind-mounted (only /var/lib/bareos-director is); entrypoint chowns it directly
-      - /tmp # bundled RestoreFiles job's default `Where` target (/tmp/bareos-restores);
-             # confirmed by actually running a restore, not inferred
+      - /tmp
     volumes:
       - /data/bareos/config/client:/etc/bareos
       - /data/bareos/data/director:/var/lib/bareos-director # required for MyCatalog backup
     environment:
       - BAREOS_FD_PASSWORD=${BAREOS_FD_PASSWORD} # defined in .env file
       - FORCE_ROOT=false
-      #- PUID=1500 # force bareos user ID -- NOTE: incompatible with read_only above (usermod
-      #  writes /etc/passwd, which is on the read-only root fs); drop read_only if you enable this
+      #- PUID=1500 # force bareos user ID
       #- PGID=1500 # force bareos group ID
 
-  # bareos-webui: both Apache (User/Group www-data via envvars) and php-fpm
-  # (user/group www-data in www.conf, started by the entrypoint itself) already
-  # self-drop worker processes. read_only:true is NOT applied: the entrypoint
-  # unconditionally rewrites /etc/apache2/sites-available/000-default.conf (not
-  # a bind mount) on every start, which a read-only root fs would block.
   bareos-webui:
     image: darkvex/bareos-webui:25-ubuntu
     security_opt:
@@ -160,12 +106,11 @@ services:
     cap_drop:
       - ALL
     cap_add:
-      - SETUID           # apache2/php-fpm masters (root) drop workers to www-data
+      - SETUID
       - SETGID
-      - CHOWN            # php-fpm master chowns its unix socket to www-data
-      - DAC_OVERRIDE     # /run/php is baked as www-data:www-data 0755; root needs this to
-                         # write the fpm socket into it (root is "other" there, not owner)
-      - NET_BIND_SERVICE # Apache listens on port 80
+      - CHOWN
+      - DAC_OVERRIDE
+      - NET_BIND_SERVICE
     ports:
       - 127.0.0.1:8080:80
     environment:
@@ -194,15 +139,12 @@ services:
 
   # Optional tools
   # Bareos API
-  # read_only is NOT applied: pip installs into /home/bareos at build time and
-  # the entrypoint rewrites /home/bareos/api.ini on every start -- a tmpfs
-  # there to allow that write shadows the whole image-baked install.
   bareos-api:
     image: darkvex/bareos-api:25-alpine
     security_opt:
       - no-new-privileges:true
     cap_drop:
-      - ALL # already runs as USER 1000 from PID 1 -- no setuid/chown phase, no caps needed
+      - ALL
     ports:
       - 127.0.0.1:8000:8000
     environment:
