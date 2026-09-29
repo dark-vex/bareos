@@ -358,10 +358,10 @@ webui was verified empirically before writing any code: both flavors already
 self-drop privileges the same way the Bareos daemons and Apache do, so **no
 Dockerfile or entrypoint changes were needed**:
 
-- alpine: nginx ships `user nginx;` in `nginx.conf`, and php-fpm's `www.conf`
+* alpine: nginx ships `user nginx;` in `nginx.conf`, and php-fpm's `www.conf`
   ships `user = nobody` / `group = nobody` — both untouched by this repo's
   own `zz-docker.conf` overlay.
-- ubuntu: Apache uses the standard Debian `APACHE_RUN_USER=www-data` /
+* ubuntu: Apache uses the standard Debian `APACHE_RUN_USER=www-data` /
   `APACHE_RUN_GROUP=www-data` envvars, and php-fpm's `www.conf` ships
   `user = www-data` / `group = www-data`.
 
@@ -369,13 +369,13 @@ Both still need `CAP_SETUID`/`CAP_SETGID` for that master-to-worker drop, and
 `CAP_CHOWN` for the socket/tmp-dir handoff. Two capabilities were only found
 necessary by actually running the hardened containers, not by reading source:
 
-- `CAP_DAC_OVERRIDE` on **both** webui flavors — Alpine's `bareos-webui-nginx`
+* `CAP_DAC_OVERRIDE` on **both** webui flavors — Alpine's `bareos-webui-nginx`
   package ships `/var/lib/nginx` as `nginx:nginx 0750`, and Debian's php-fpm
   package ships `/run/php` as `www-data:www-data 0755`. Without this
   capability, root is evaluated as "other" against those modes and can't even
   traverse into them — `cap_drop: ALL` removes root's usual free pass around
   file permission checks, it isn't only about setuid/setgid.
-- `CAP_NET_BIND_SERVICE` on ubuntu webui only — Apache listens on port 80.
+* `CAP_NET_BIND_SERVICE` on ubuntu webui only — Apache listens on port 80.
   (The alpine flavor listens on 9100, so it doesn't need this.)
 
 ### `read_only` exceptions
@@ -384,13 +384,13 @@ Two services deliberately do **not** get `read_only: true`, because a tmpfs
 mount hides whatever the image baked in at that same path rather than
 overlaying it:
 
-- **webui** (both flavors): the entrypoint unconditionally rewrites
+* **webui** (both flavors): the entrypoint unconditionally rewrites
   `/etc/nginx/http.d/bareos-webui.conf` (alpine) or
   `/etc/apache2/sites-available/000-default.conf` (ubuntu) on *every* start —
   neither path is a bind mount. Making `/etc/nginx` or `/etc/apache2`
   read-only blocks that rewrite outright; tmpfs-mounting them instead erases
   the whole image-baked config directory before the entrypoint even runs.
-- **api**: `pip install` lands the `uvicorn` entrypoint and all site-packages
+* **api**: `pip install` lands the `uvicorn` entrypoint and all site-packages
   under `/home/bareos` at build time, and the entrypoint rewrites
   `/home/bareos/api.ini` on every start. A tmpfs at `/home/bareos` (needed to
   allow that write under `USER 1000`, which has no root phase to `chown` a
@@ -414,13 +414,13 @@ lack these paths and correctly default to `1777`) versus the real
 This bit two services whose entrypoints don't `chown` a path this hardening
 now tmpfs-mounts:
 
-- **ubuntu director**'s entrypoint
+* **ubuntu director**'s entrypoint
   (`director-pgsql/25-ubuntu/docker-entrypoint.sh`) only `chown`s
   `/var/lib/bareos`, not `/var/log/bareos` — unlike its alpine counterpart,
   which chowns both. Broke the daemon's own file logging (`fopen ...
   bareos.log failed: Permission denied`) without failing the container or
   the healthcheck.
-- **`bareos-sd`**, on both flavors, never `chown`s `/var/log/bareos` at all.
+* **`bareos-sd`**, on both flavors, never `chown`s `/var/log/bareos` at all.
   Invisible in this repo's default compose (storage's default Messages
   resource has no `File =` destination, so nothing writes there), but a
   latent trap for any operator who adds file-based sd logging later.
@@ -449,19 +449,19 @@ entry. A backup-only smoke test cannot catch this — it's restore-specific.
 
 ### Operational caveats
 
-- **FD and arbitrary host paths**: the bundled `SelfTest` fileset (what
+* **FD and arbitrary host paths**: the bundled `SelfTest` fileset (what
   `backup-bareos-fd` actually backs up by default) reads fine under
   `cap_drop: ALL` — confirmed by running it. If you point `bareos-fd` at
   arbitrary host paths instead, the restricted capability set here may not be
   enough to read them — `FORCE_ROOT=true` (which skips the privilege drop
   entirely) or adding `CAP_DAC_READ_SEARCH` are both options; that trade-off
   is operator-specific and intentionally not a default.
-- **`PUID`/`PGID` vs. `read_only`**: the commented-out `PUID`/`PGID` options
+* **`PUID`/`PGID` vs. `read_only`**: the commented-out `PUID`/`PGID` options
   in `bareos-fd` call `usermod -u`/`groupmod -g`, which write to
   `/etc/passwd`/`/etc/group`. Those paths are read-only under this hardening,
   so uncommenting `PUID`/`PGID` on an already-hardened `bareos-fd` will fail;
   drop `read_only: true` for that service if you need them.
-- **Restores need `/tmp` writable on `bareos-fd`**: the bundled `RestoreFiles`
+* **Restores need `/tmp` writable on `bareos-fd`**: the bundled `RestoreFiles`
   job's default `Where = "/tmp/bareos-restores"` failed outright
   (`Cannot create directory /tmp/bareos-restores: ERR=Read-only file
   system`) until `/tmp` was added to `bareos-fd`'s `tmpfs:` list — found only
