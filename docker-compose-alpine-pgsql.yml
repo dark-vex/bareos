@@ -2,6 +2,21 @@
 services:
   bareos-dir:
     image: darkvex/bareos-director:25-alpine-pgsql
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+      - FOWNER
+    read_only: true
+    tmpfs:
+      - /run/bareos
+      - /var/log/bareos
+      - /tmp
     volumes:
       - /data/bareos/config/director:/etc/bareos
       - /data/bareos/data/director:/var/lib/bareos # required for MyCatalog backup
@@ -33,6 +48,21 @@ services:
 
   bareos-sd:
     image: darkvex/bareos-storage:25-alpine
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+      - FOWNER
+    read_only: true
+    tmpfs:
+      - /run/bareos
+      - /var/log/bareos:mode=1777
+      - /var/lib/bareos
     ports:
       - 9103:9103
     volumes:
@@ -43,6 +73,22 @@ services:
 
   bareos-fd:
     image: darkvex/bareos-client:25-alpine
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+      - FOWNER
+    read_only: true
+    tmpfs:
+      - /run/bareos
+      - /var/log/bareos
+      - /var/lib/bareos # not bind-mounted (only /var/lib/bareos-director is); entrypoint chowns it directly
+      - /tmp
     volumes:
       - /data/bareos/config/client:/etc/bareos
       - /data/bareos/data/director:/var/lib/bareos-director # required for MyCatalog backup
@@ -54,6 +100,15 @@ services:
 
   bareos-webui:
     image: darkvex/bareos-webui:25-alpine
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+      - CHOWN
     ports:
       - 127.0.0.1:8080:9100
     environment:
@@ -70,6 +125,16 @@ services:
   php-fpm:
     image: darkvex/bareos-webui:25-alpine
     entrypoint: ["/usr/local/sbin/php-fpm"]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+    read_only: true
+    tmpfs:
+      - /tmp
     volumes:
       - /data/bareos/config/webui:/etc/bareos-webui
       - /data/bareos/data/webui:/usr/share/bareos-webui
@@ -97,6 +162,10 @@ services:
 
   bareos-api:
     image: darkvex/bareos-api:25-alpine
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     ports:
     - 127.0.0.1:8000:8000
     environment:

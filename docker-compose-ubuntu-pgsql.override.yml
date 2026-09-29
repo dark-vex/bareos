@@ -1,0 +1,22 @@
+## Override for smoke-testing a non-default Bareos version against docker-compose-ubuntu-pgsql.yml,
+## which is pinned to 25-ubuntu. The default here (23-ubuntu) is deliberately NOT 25-ubuntu:
+## its purpose is to exercise a distinct, still-supported version against the current default,
+## not to track it. Usage:
+##
+##   BAREOS_UBUNTU_TAG=23-ubuntu docker compose \
+##     -f docker-compose-ubuntu-pgsql.yml -f docker-compose-ubuntu-pgsql.override.yml up -d
+##
+## Set BAREOS_IMAGE_REPO to a locally built image namespace (e.g. bareos-test) to test
+## images built from a working tree instead of published darkvex/* images on Docker Hub.
+services:
+  bareos-dir:
+    image: ${BAREOS_IMAGE_REPO:-darkvex}/bareos-director:${BAREOS_UBUNTU_TAG:-23-ubuntu}-pgsql
+
+  bareos-sd:
+    image: ${BAREOS_IMAGE_REPO:-darkvex}/bareos-storage:${BAREOS_UBUNTU_TAG:-23-ubuntu}
+
+  bareos-fd:
+    image: ${BAREOS_IMAGE_REPO:-darkvex}/bareos-client:${BAREOS_UBUNTU_TAG:-23-ubuntu}
+
+  bareos-webui:
+    image: ${BAREOS_IMAGE_REPO:-darkvex}/bareos-webui:${BAREOS_UBUNTU_TAG:-23-ubuntu}

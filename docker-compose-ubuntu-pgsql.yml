@@ -2,6 +2,21 @@
 services:
   bareos-dir:
     image: darkvex/bareos-director:25-ubuntu-pgsql
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+      - FOWNER
+    read_only: true
+    tmpfs:
+      - /run/bareos
+      - /var/log/bareos:mode=1777
+      - /tmp
     volumes:
       - /data/bareos/config/director:/etc/bareos
       - /data/bareos/data/director:/var/lib/bareos # required for MyCatalog backup
@@ -34,6 +49,21 @@ services:
 
   bareos-sd:
     image: darkvex/bareos-storage:25-ubuntu
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+      - FOWNER
+    read_only: true
+    tmpfs:
+      - /run/bareos
+      - /var/log/bareos:mode=1777
+      - /var/lib/bareos
     ports:
       - 9103:9103
     volumes:
@@ -44,6 +74,22 @@ services:
 
   bareos-fd:
     image: darkvex/bareos-client:25-ubuntu
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+      - FOWNER
+    read_only: true
+    tmpfs:
+      - /run/bareos
+      - /var/log/bareos
+      - /var/lib/bareos # not bind-mounted (only /var/lib/bareos-director is); entrypoint chowns it directly
+      - /tmp
     volumes:
       - /data/bareos/config/client:/etc/bareos
       - /data/bareos/data/director:/var/lib/bareos-director # required for MyCatalog backup
@@ -55,6 +101,16 @@ services:
 
   bareos-webui:
     image: darkvex/bareos-webui:25-ubuntu
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETUID
+      - SETGID
+      - CHOWN
+      - DAC_OVERRIDE
+      - NET_BIND_SERVICE
     ports:
       - 127.0.0.1:8080:80
     environment:
@@ -85,6 +141,10 @@ services:
   # Bareos API
   bareos-api:
     image: darkvex/bareos-api:25-alpine
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     ports:
       - 127.0.0.1:8000:8000
     environment:
