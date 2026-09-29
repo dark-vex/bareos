@@ -170,6 +170,45 @@ create_network_and_db() {
     docker exec "$DB" pg_isready -U "$DB_ADMIN_USER"
 }
 
+placeholder_password_rejected() {
+  local name="${PROJECT}-test-placeholder" rc=0 logs
+  docker rm -f "$name" >/dev/null 2>&1 || true
+  docker run --name "$name" \
+    -e BAREOS_SD_PASSWORD='ThisIsMySecretSDp4ssw0rd' \
+    "$SD_IMAGE" true >/dev/null 2>&1 && rc=0 || rc=$?
+  logs="$(docker logs "$name" 2>&1 || true)"
+  docker rm -f "$name" >/dev/null 2>&1 || true
+  if [ "$rc" -eq 0 ]; then
+    log "expected non-zero exit for a retired placeholder password, got 0"
+    return 1
+  fi
+  case "$logs" in
+    *"retired example value"*) return 0 ;;
+    *)
+      log "expected 'retired example value' in entrypoint output, got: $logs"
+      return 1
+      ;;
+  esac
+}
+
+file_based_password_succeeds() {
+  local name="${PROJECT}-test-filepass" rc=0 logs secretfile
+  docker rm -f "$name" >/dev/null 2>&1 || true
+  secretfile="$STATE_DIR/sd-password-file"
+  printf '%s' "$BAREOS_SD_PASSWORD" > "$secretfile"
+  docker run --name "$name" \
+    -v "${secretfile}:/run/secrets/bareos_sd_password:ro" \
+    -e BAREOS_SD_PASSWORD_FILE=/run/secrets/bareos_sd_password \
+    "$SD_IMAGE" true >/dev/null 2>&1 && rc=0 || rc=$?
+  logs="$(docker logs "$name" 2>&1 || true)"
+  docker rm -f "$name" >/dev/null 2>&1 || true
+  if [ "$rc" -ne 0 ]; then
+    log "expected exit 0 for BAREOS_SD_PASSWORD_FILE, got ${rc}: $logs"
+    return 1
+  fi
+  return 0
+}
+
 start_sd() {
   docker volume create "$VOL_SD_CFG" >/dev/null
   docker volume create "$VOL_SD_DATA" >/dev/null
@@ -398,6 +437,9 @@ api_query_ok() {
 }
 
 main() {
+  step "reject retired placeholder password" placeholder_password_rejected
+  step "accept password via BAREOS_SD_PASSWORD_FILE" file_based_password_succeeds
+
   step "network + postgres" create_network_and_db
   step "start storage daemon and file daemon" start_sd_fd_dir_init
   step "wait for director (status director)" \
