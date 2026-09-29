@@ -24,14 +24,14 @@ it just freezes at whatever version was current when each Alpine stable branch c
 any distro backport. Verified 2026-08-22 via `docker run --rm --platform <arch> alpine:<tag> apk search -e bareos`
 against the live Alpine CDN (see Verification commands below).
 
-| Bareos version | Alpine tag | Bareos package | amd64 | armv7 | aarch64 | `bareos-postgresql` subpackage? |
-|---------------|-----------|----------------|:---:|:---:|:---:|---|
-| 20 | alpine:3.15 | bareos-20.x | ✓ | — | — | yes |
-| 21 | alpine:3.17 | bareos-21.x | ✓ | — | — | yes |
-| 22 | alpine:3.18 | bareos-22.0.3-r1 | ✓ | — | ✓ | yes (deprecated by this fork — frozen, see CLAUDE.md) |
-| 23 | alpine:3.21 | bareos-23.0.4-r1 | ✓ | ✓ (upstream) | ✗ needs custom build | yes |
-| 24 | alpine:3.23 | bareos-24.0.7-r0 | ✓ | ✗ needs custom build | ✗ needs custom build | no — folded into base `bareos` |
-| 25 | alpine:3.24 | bareos-25.0.3-r0 | ✓ | ✗ needs custom build | ✗ needs custom build | no — folded into base `bareos` |
+| Bareos version | Alpine tag | Bareos package | amd64 | aarch64 | `bareos-postgresql` subpackage? |
+|---------------|-----------|----------------|:---:|:---:|---|
+| 20 | alpine:3.15 | bareos-20.x | ✓ | — | yes |
+| 21 | alpine:3.17 | bareos-21.x | ✓ | — | yes |
+| 22 | alpine:3.18 | bareos-22.0.3-r1 | ✓ | ✓ | yes (deprecated by this fork — frozen, see CLAUDE.md) |
+| 23 | alpine:3.21 | bareos-23.0.4-r1 | ✓ | ✗ needs custom build | yes |
+| 24 | alpine:3.23 | bareos-24.0.7-r0 | ✓ | ✗ needs custom build | no — folded into base `bareos` |
+| 25 | alpine:3.24 | bareos-25.0.3-r0 | ✓ | ✗ needs custom build | no — folded into base `bareos` |
 
 **Notes**:
 
@@ -41,11 +41,10 @@ against the live Alpine CDN (see Verification commands below).
   postgres DDL scripts, `libbareossql`) ships inside the base `bareos` package — there is
   no separate `bareos-postgresql` subpackage to install for director-pgsql on 23+/24/25.
   23 (Alpine 3.21) still has the separate `bareos-postgresql` subpackage.
-- **24-alpine base is 3.23, not 3.22.** Alpine 3.22 ships Bareos 24.0.1-r0 with armv7 still
-  free (no custom build needed), but that's an older patch release. This repo deliberately
-  chose the fresher 3.23 base (24.0.7-r0) and accepted that armv7 (like aarch64) needs a
-  custom build for 24-alpine — same effort profile as 25-alpine. Do not "fix" this back to
-  3.22 without checking with the user first; it was an explicit tradeoff decision.
+- **24-alpine base is 3.23, not 3.22.** This repo deliberately chose the fresher 3.23 base
+  (24.0.7-r0) over the older 3.22 (24.0.1-r0) and accepted that aarch64 needs a custom build
+  for 24-alpine — same effort profile as 25-alpine. Do not "fix" this back to 3.22 without
+  checking with the user first; it was an explicit tradeoff decision.
 - aarch64 (`linux/arm64/v8`) was dropped from Alpine's `arch=` after 3.18 for 23/24/25.
   Investigated, not just observed: the APKBUILD's `arch=` line on 3.22/3.24 is preceded by
   a comment tying the restriction to `chromium-chromedriver`, a build-time-only
@@ -55,24 +54,6 @@ against the live Alpine CDN (see Verification commands below).
   restriction is vestigial, not proof — Alpine's own builders never attempted aarch64 once
   `arch=` excluded it. A real spike (`abuild -r` under `--platform linux/arm64`) is required
   before committing to a custom aarch64 build; see the `add-bareos-version` plan's Step 0.
-- armv7 is a separate, already-proven target for 23-alpine only (upstream `arch=` covers it
-  on 3.21). It does **not** cover 24 (with the 3.23 base chosen here) or 25 (3.24).
-- **armv7 custom builds for Bareos 24/25 are currently BLOCKED, not just extra effort.**
-  Confirmed via real `abuild -r` spikes (2026-08-22) against both Release/24.0.7 and
-  Release/25.0.3: the file-daemon Python plugin
-  (`core/src/plugins/filed/python/module/bareosfd.{h,cc}`) has
-  `static_assert(std::is_same_v<decltype(PyStatPacket::atime), long>)` gated only on
-  `#if defined(HAVE_WIN32)`. On 32-bit ARM/musl, `time_t` is 64-bit (Y2038-safe time64
-  ABI) so `PyStatPacket::atime` is not plain `long` there either, and the assert fails
-  the same way Windows would if it weren't special-cased — a genuine upstream source
-  bug, present in both 24.0.7 and 25.0.3, not a missing/vestigial build dependency like
-  the aarch64 case. `-DENABLE_PYTHON=no` does not cleanly route around it either: it
-  breaks `bareos_add_plugin` for the (unrelated) storage plugin CMakeLists, an upstream
-  CMake coupling, and would ship armv7 images with a different feature set than other
-  arches regardless. aarch64 (arm64) is unaffected — confirmed via a clean native spike
-  build of 25.0.3 with all subpackages produced. Do not generate armv7 Dockerfile paths
-  for 24-alpine or 25-alpine until this is resolved upstream or a vetted source patch
-  exists; ask before attempting one.
 
 ## api component (bareos-restapi pip package)
 
@@ -132,18 +113,8 @@ wildcard syntax and were deliberately left untouched** (already excluded
 from CI, already broken on import, would get zero verification from this
 spike) — fix their pip spec too if either is ever un-blocked. All three
 bumped versions were verified (build, `import bareos_restapi`, `which
-uvicorn`, and a live `uvicorn --reload` serving `/docs`) on amd64 and arm64;
-`api/23-alpine` was also verified the same way on armv7 under QEMU (the
-tightest musllinux wheel-coverage constraint, since it's the only api
-version CI builds for that arch) — build succeeded with only `pyyaml`
-compiling from source (`cp314-cp314-linux_armv7l` wheel, ~5s). That wheel
-tag looks like a compiled C extension but isn't: no gcc/musl-dev is present
-in the base image, and `yaml.__with_libyaml__` reads `False` at runtime on
-that armv7 image — confirmed pure-Python fallback, not a real build-toolchain
-risk. No other package needed a source build. `pydantic-core` (Rust-backed)
-had a prebuilt `musllinux_1_1_armv7l` wheel for `cp314`. `watchfiles` was
-never a concern —
-these Dockerfiles install bare `uvicorn`, not `uvicorn[standard]`, so
+uvicorn`, and a live `uvicorn --reload` serving `/docs`) on amd64 and arm64.
+These Dockerfiles install bare `uvicorn`, not `uvicorn[standard]`, so
 `--reload` uses uvicorn's `StatReload` fallback and never pulls in
 `watchfiles` at all.
 

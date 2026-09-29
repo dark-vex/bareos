@@ -7,8 +7,8 @@ ARG TARGETARCH
 ARG TARGETVARIANT
 
 # Alpine 3.24's community repo ships bareos-webui-nginx-25.0.3 for amd64 only.
-# armv7 and aarch64 are not published upstream for this version; install our own
-# custom-built .apk (see bareos-alpine-packages/) for those arches instead.
+# aarch64 is not published upstream for this version; install our own
+# custom-built .apk (see bareos-alpine-packages/) for that arch instead.
 ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v4
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_VER=25-alpine3.24
@@ -24,7 +24,6 @@ RUN apk upgrade --no-cache \
     else \
       case "$TARGETARCH/$TARGETVARIANT" in \
         arm64/*) bareos_arch=aarch64; bareos_sha256="${BAREOS_APK_SHA256_AARCH64}" ;; \
-        arm/v7) echo "armv7 is not supported for this Bareos version: upstream bug (time_t static_assert in the filedaemon Python plugin) blocks the custom build, see bareos-alpine-packages/README.md" >&2; exit 1 ;; \
         *) echo "unsupported arch $TARGETARCH/$TARGETVARIANT for custom bareos apk" >&2; exit 1 ;; \
       esac \
    && apk add --no-cache curl tar \

@@ -178,7 +178,7 @@ while read -r build_app s_tag t_tag ; do
   fi
   # Create and push manifest for Alpine, from whichever per-arch tags were
   # actually built for this version (see app_build.txt) — not every alpine
-  # version supports the same arch set (e.g. armv7 is only built for 23).
+  # version supports the same arch set.
   if [[ $s_tag =~ ^[a-z0-9]+-alpine.*$ ]]; then
     manifest_refs=()
     while read -r arch; do

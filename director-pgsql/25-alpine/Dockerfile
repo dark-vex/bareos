@@ -21,9 +21,9 @@ SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
 
 # Alpine 3.24's community repo ships bareos-25.0.3 for amd64 only, with
 # the postgres catalog driver folded into the base 'bareos' package (no separate
-# bareos-postgresql subpackage from Bareos 24 onward). armv7 and aarch64 are not
+# bareos-postgresql subpackage from Bareos 24 onward). aarch64 is not
 # published upstream for this version; install our own custom-built .apk (see
-# bareos-alpine-packages/) for those arches instead.
+# bareos-alpine-packages/) for that arch instead.
 ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v4
 ARG BAREOS_APK_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_APK_VER=25-alpine3.24
@@ -38,7 +38,6 @@ RUN apk upgrade --no-cache \
     else \
       case "$TARGETARCH/$TARGETVARIANT" in \
         arm64/*) bareos_arch=aarch64; bareos_sha256="${BAREOS_APK_SHA256_AARCH64}" ;; \
-        arm/v7) echo "armv7 is not supported for this Bareos version: upstream bug (time_t static_assert in the filedaemon Python plugin) blocks the custom build, see bareos-alpine-packages/README.md" >&2; exit 1 ;; \
         *) echo "unsupported arch $TARGETARCH/$TARGETVARIANT for custom bareos apk" >&2; exit 1 ;; \
       esac \
    && curl -fsSL "${BAREOS_APK_REPO}/releases/download/${BAREOS_APK_RELEASE}/bareos-${BAREOS_APK_VER}-${bareos_arch}.tar.gz" -o /tmp/bareos-apks.tar.gz \

@@ -2,7 +2,7 @@
 
 ![License badge][license-img]
 ![Based OS][os-based-ubuntu] ![Based OS][os-based-alpine]
-![Badge amd64][arch-amd64-img] ![Badge arm64][arch-arm64/v8-img] ![Badge armv7][arch-armv7-img]
+![Badge amd64][arch-amd64-img] ![Badge arm64][arch-arm64/v8-img]
 
 Container images for running [Bareos][bareos-href] components with Docker and
 Docker Compose.
@@ -19,23 +19,20 @@ Docker Compose.
 
 Weekly image builds run from GitHub Actions. Ubuntu images are built for
 `linux/amd64` only. Alpine architecture coverage varies by Bareos version —
-`linux/amd64` is always available, `linux/arm64/v8` is available for every
-Alpine version, and `linux/arm/v7` is available for Bareos 23 only:
+`linux/amd64` is always available, and `linux/arm64/v8` is available for
+every Alpine version:
 
-| Bareos version | Alpine base | amd64 | arm64/v8 | arm/v7 |
-|:--|:--|:--:|:--:|:--:|
-| 25 | Alpine 3.24 | ✅ | ✅ | ❌ |
-| 24 | Alpine 3.23 | ✅ | ✅ | ❌ |
-| 23 | Alpine 3.21 | ✅ | ✅ | ✅ |
-| 22 | — | ✅ | — | — |
+| Bareos version | Alpine base | amd64 | arm64/v8 |
+|:--|:--|:--:|:--:|
+| 25 | Alpine 3.24 | ✅ | ✅ |
+| 24 | Alpine 3.23 | ✅ | ✅ |
+| 23 | Alpine 3.21 | ✅ | ✅ |
+| 22 | — | ✅ | — |
 
-amd64 and, for Bareos 23, arm/v7 install Bareos straight from Alpine's
-official `community` repository. arm64/v8 for Bareos 23/24/25 (and arm/v7 for
-Bareos 24/25, which Alpine's own repository does not publish at all) install a
-package built by this repo's `bareos-alpine-packages/` pipeline — Bareos 24
-and 25 hit a real upstream bug on 32-bit ARM that rules out arm/v7 for those
-two versions regardless of who builds the package; see
-`bareos-alpine-packages/README.md` for details.
+amd64 installs Bareos straight from Alpine's official `community` repository.
+arm64/v8 for Bareos 23/24/25 installs a package built by this repo's
+`bareos-alpine-packages/` pipeline; see `bareos-alpine-packages/README.md`
+for details.
 
 ## Supported Tags
 
@@ -100,7 +97,7 @@ actively maintained images.
 |:--|:--|:--|:--|:--|
 | 25 | `25-ubuntu` on Ubuntu 24.04 | `25-alpine` on Alpine 3.24 | `25-alpine` | Ubuntu from `download.bareos.org/current/`; Alpine amd64+arm64/v8 |
 | 24 | `24-ubuntu` on Ubuntu 24.04 | `24-alpine` on Alpine 3.23 | `24-alpine` (latest) | Ubuntu from GitHub package release; Alpine amd64+arm64/v8 |
-| 23 | `23-ubuntu` on Ubuntu 22.04 | `23-alpine` on Alpine 3.21 | `23-alpine` | Ubuntu from GitHub package release; Alpine amd64+arm64/v8+arm/v7 |
+| 23 | `23-ubuntu` on Ubuntu 22.04 | `23-alpine` on Alpine 3.21 | `23-alpine` | Ubuntu from GitHub package release; Alpine amd64+arm64/v8 |
 | 22 | `22-ubuntu` on Ubuntu 22.04 | `22-alpine` on Alpine 3.18 | — | Deprecated: existing tags remain published but frozen, no further rebuilds or CVE patches (see Deprecated Tags above); `bareos-restapi` 22.x fails to import (see `bareos-api` tags above) |
 | 21 and older | — | — | — | Removed from this repository — git history keeps the old Dockerfiles. No `16`–`21` tag remains on Docker Hub under `darkvex/`; `director-mysql/` (MySQL catalog backend, dropped upstream in Bareos 21) was removed in full. See the notes below for an upstream fallback and the MySQL migration path. |
 
@@ -608,7 +605,6 @@ build can download them.
 
 [arch-amd64-img]: https://img.shields.io/badge/arch-amd64-inactive
 [arch-arm64/v8-img]: https://img.shields.io/badge/arch-arm64/v8-inactive
-[arch-armv7-img]: https://img.shields.io/badge/arch-arm/v7-inactive
 [bareos-href]: https://www.bareos.org
 [bareos-doc]: https://www.bareos.com/learn/documentation
 [bareos-packages-readme]: https://github.com/Dark-Vex/bareos/blob/master/bareos-packages/README.md
