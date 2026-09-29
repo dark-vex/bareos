@@ -10,6 +10,26 @@ services:
       - CHOWN   # entrypoint chown fixups before the daemon's own setuid drop
       - SETUID  # bareos-dir -u bareos internal privilege drop
       - SETGID
+      # /etc/bareos itself is baked bareos:root; root's fsuid/fsgid don't
+      # match either, so without CAP_DAC_OVERRIDE root can't even write new
+      # top-level entries into it.
+      - DAC_OVERRIDE
+      # On first run the entrypoint's tar extraction (GNU tar defaults to
+      # --same-owner --preserve-permissions as root) chowns each config
+      # entry to bareos:root, then chmods it back to its recorded mode --
+      # but by then the caller (root) is no longer that file's owner, and
+      # chmod() requires CAP_FOWNER whenever the caller's uid doesn't match
+      # the file's owner, regardless of which bits are being set. Without
+      # both of these, GNU tar reports "Cannot change mode to ...: Operation
+      # not permitted" (or "Cannot rename to ...") and aborts extraction,
+      # crashing the daemon before it can even start. Verified with a
+      # minimal tar/capability repro against a genuinely empty target (not
+      # a bind mount through Docker Desktop's macOS file-sharing layer,
+      # which does not faithfully reproduce these checks): CAP_CHOWN alone
+      # reproduces the failure; CAP_FOWNER alone or CAP_DAC_OVERRIDE alone
+      # each still fail differently; both together are required and
+      # sufficient.
+      - FOWNER
     read_only: true
     tmpfs:
       - /run/bareos
@@ -60,6 +80,10 @@ services:
       - CHOWN
       - SETUID  # bareos-sd -u bareos internal privilege drop
       - SETGID
+      # first-run tar extraction needs both of these -- see the detailed
+      # comment on bareos-dir's cap_add above.
+      - DAC_OVERRIDE
+      - FOWNER
     read_only: true
     tmpfs:
       - /run/bareos
@@ -95,6 +119,10 @@ services:
       - CHOWN   # entrypoint chown fixups (/etc/bareos, /run/bareos, /var/log/bareos, /var/lib/bareos)
       - SETUID  # su-exec drop to BAREOS_DAEMON_USER
       - SETGID
+      # first-run tar extraction needs both of these -- see the detailed
+      # comment on bareos-dir's cap_add above.
+      - DAC_OVERRIDE
+      - FOWNER
     read_only: true
     tmpfs:
       - /run/bareos
