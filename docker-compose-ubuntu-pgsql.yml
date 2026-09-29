@@ -56,6 +56,7 @@ services:
     image: darkvex/bareos-storage:25-ubuntu
     security_opt:
       - no-new-privileges:true
+      - apparmor:unconfined # TEMP DIAGNOSTIC: testing AppArmor as the cause of CI's sd exit(2)
     cap_drop:
       - ALL
     cap_add:
