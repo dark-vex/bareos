@@ -9,8 +9,7 @@ not include `aarch64`.
 Alpine's `community/bareos` package is actively maintained and tracks upstream Bareos —
 it just freezes at whatever version was current when each Alpine stable branch cut, and
 `arch=` on 3.21/3.22/3.23/3.24 dropped `aarch64` (it was present through 3.18). amd64 is
-always covered upstream; armv7 is covered upstream only through 3.22 (Bareos 24.0.1).
-This builder covers the aarch64 gap the same way `bareos-packages/` covers the Ubuntu
+always covered upstream. This builder covers the aarch64 gap the same way `bareos-packages/` covers the Ubuntu
 source-build gap — by building the *unmodified* upstream package recipe ourselves,
 minus the one build-time-only dependency (`chromium-chromedriver`) that keeps `arch=`
 pinned, and extending `arch=` to include `aarch64`.
@@ -20,19 +19,6 @@ pinned, and extending `arch=` to include `aarch64`.
 | bareos-23-alpine3.21       | 3.21-stable   | 23.0.4-r1       | no — build here    |
 | bareos-24-alpine3.23       | 3.23-stable   | 24.0.7-r0       | no — build here    |
 | bareos-25-alpine3.24       | 3.24-stable   | 25.0.3-r0       | no — build here    |
-
-**armv7 is intentionally not built here for bareos_version 24/25.** A real upstream
-bug — not a missing dependency — blocks it: `core/src/plugins/filed/python/module/bareosfd.h`
-gates `static_assert(std::is_same_v<decltype(PyStatPacket::atime), long>)` only on
-`#if defined(HAVE_WIN32)`. On 32-bit ARM/musl, `time_t` is the Y2038-safe 64-bit type,
-so the assert fails there too, the same way it would on Windows if that branch weren't
-special-cased. Confirmed via real `abuild -r` spikes against both Release/24.0.7 and
-Release/25.0.3 on 2026-08-22 (both fail identically). `-DENABLE_PYTHON=no` is not a
-clean workaround — it breaks the `bareos_add_plugin` CMake macro used by the (unrelated)
-storage plugin, and would ship armv7 with a different feature set than every other arch,
-defeating the whole point of building upstream's own unmodified recipe. armv7 for
-bareos-23 (3.21-stable) is unaffected and needs no custom build — it installs straight
-from Alpine's official repo, see the component Dockerfiles.
 
 ## Why aarch64 is safe to add back (investigated, not assumed)
 
@@ -110,7 +96,7 @@ git push origin pkg/bareos-alpine-packages-v4
 Each component directory carries a copy of `keys/bareos-apk@dark-vex.rsa.pub` so `apk`
 verifies the package signatures (no `--allow-untrusted`). Once a release exists,
 component Dockerfiles install from it on `aarch64` only — amd64
-(and, for bareos-23 only, armv7) install straight from Alpine's community repo:
+installs straight from Alpine's community repo:
 
 ```dockerfile
 ARG BAREOS_APK_RELEASE=pkg%2Fbareos-alpine-packages-v4

@@ -5,8 +5,7 @@ build_file="${INPUT_BUILD_FILE:-app_build.txt}"
 BUILDX_VER='v0.5.1'
 export DOCKER_CLI_EXPERIMENTAL="enabled"
 
-# Install the buildx binary matching the native runner architecture. armv7
-# builds run on amd64 under QEMU, so they also use the amd64 plugin.
+# Install the buildx binary matching the native runner architecture.
 echo ::group::Install Buildx
 case "$(uname -m)" in
   x86_64)
@@ -42,17 +41,11 @@ while read -r app version arch app_path ; do
     tag="${version}-${arch}"
   fi
 
-  # arch is a Docker-tag-safe token (amd64, arm64, armv7); translate to the
-  # buildx --platform value here rather than storing "arm/v7" in app_build.txt,
-  # since "/" is not a valid character in a Docker tag.
-  platform_arch="${arch}"
-  [[ "${arch}" == 'armv7' ]] && platform_arch='arm/v7'
-
   # Build with buildx
   if ! docker buildx build \
     --no-cache \
     --pull \
-    --platform "linux/${platform_arch}" \
+    --platform "linux/${arch}" \
     --build-arg VERSION="$(echo "$version" | cut -d'-' -f1)" \
     --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
     --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \

@@ -106,20 +106,15 @@ The CI uses reusable composite actions in `.github/actions/` (prepare, build, pu
 - Ubuntu images support `linux/amd64` only.
 - Alpine architecture coverage is **per Bareos version**, not blanket amd64+arm64:
 
-  | Bareos version | Alpine base | amd64 | arm64/v8 | arm/v7 |
-  |----------------|-------------|:-----:|:--------:|:------:|
-  | 25             | 3.24        | ✓     | ✓        | ✗      |
-  | 24             | 3.23        | ✓     | ✓        | ✗      |
-  | 23             | 3.21        | ✓     | ✓        | ✓      |
+  | Bareos version | Alpine base | amd64 | arm64/v8 |
+  |----------------|-------------|:-----:|:--------:|
+  | 25             | 3.24        | ✓     | ✓        |
+  | 24             | 3.23        | ✓     | ✓        |
+  | 23             | 3.21        | ✓     | ✓        |
 
-  amd64 (and arm/v7 for 23 only) install straight from Alpine's official
-  `community` repo. arm64/v8 for 23/24/25, and arm/v7 for none beyond 23,
-  install a package built by `bareos-alpine-packages/` — see its README before
-  changing this table. **arm/v7 for 24/25 is not just unbuilt, it's currently
-  blocked**: Release/24.0.7 and Release/25.0.3 both hit a real upstream bug
-  (`time_t`/`static_assert` mismatch in the filedaemon Python plugin on 32-bit
-  ARM, confirmed via real `abuild -r` spikes). Do not add it back without
-  re-verifying that bug is fixed upstream.
+  amd64 installs straight from Alpine's official `community` repo. arm64/v8
+  for 23/24/25 installs a package built by `bareos-alpine-packages/` — see its
+  README before changing this table.
 - Current active versions: 23–25 (Ubuntu and Alpine)
 - MySQL backend was dropped upstream in Bareos 21+; this repo no longer
   carries `director-mysql/` images. This repo's own `bareos-db-migration/`
@@ -128,6 +123,18 @@ The CI uses reusable composite actions in `.github/actions/` (prepare, build, pu
   catalog to PostgreSQL means either building that image locally first or
   using upstream `barcus/bareos`'s working (but stale) `bareos-db-migration`
   compose file; see README's Database Migration section for both options.
+
+### Removed platforms
+
+`linux/arm/v7` support was dropped repo-wide on 2026-09-29 (it was previously
+built only for Bareos 23's Alpine images, the sole version whose Alpine base
+ships armv7 packages upstream — 24 and 25 were already hard-blocked by an
+upstream `time_t`/`static_assert` mismatch in the filedaemon Python plugin on
+32-bit ARM). It was removed for low usage and to drop QEMU/binfmt entirely
+from this repo's CI (it was only ever used for the armv7 build job). The next
+rebuild of the `23-alpine` tags will no longer include a `linux/arm/v7`
+platform in the manifest; no action was
+taken to freeze or preserve the existing manifest.
 
 ### Deprecated versions
 
@@ -169,8 +176,7 @@ directories were.
 
 Use `bareos-packages/` to build `.deb` packages from source for Ubuntu versions
 23–24. Alpine's own `community/bareos` package tracks upstream releases and
-needs no source build for amd64 (or arm/v7 on 23, the only version upstream
-ships it for) — only the arm64/v8 gap (every version) needs
+needs no source build for amd64 — only the arm64/v8 gap (every version) needs
 `bareos-alpine-packages/`. Once packages are published as GitHub Releases, use
 the `.claude/skills/add-bareos-version`
 skill to generate new component directories that install from those artifacts —
