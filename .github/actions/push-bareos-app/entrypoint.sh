@@ -133,7 +133,6 @@ while read -r app version arch app_path ; do
   if ! wizcli scan container-image "${remote_name}" \
       --dockerfile "${app_path}/Dockerfile" \
       --policies="${wiz_policies}" \
-      --driver mountWithLayers \
       --sarif-output-file "${sarif_file}"; then
     wiz_scan_ok=0
   fi
