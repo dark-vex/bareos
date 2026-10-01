@@ -324,12 +324,26 @@ cosign verify "darkvex/bareos-director@${digest}" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
 cosign verify-attestation --type spdxjson "darkvex/bareos-director@${digest}" \
+  --new-bundle-format \
   --certificate-identity-regexp '^https://github.com/dark-vex/bareos/\.github/workflows/ci-[a-z]+\.yml@refs/heads/master$' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
 Use `--type slsaprovenance` to verify the provenance attestation instead of
 the SBOM.
+
+Attestations are published in the [Sigstore bundle format][cosign-href],
+linked via the OCI 1.1 `subject` field, so `--new-bundle-format` is required
+to verify them. Images published before this change still carry
+legacy-format attestations and must be verified by omitting that flag; this
+transition window lasts until the old attestation tags are cleaned up.
+
+Re-attesting the same digest (e.g. a re-run after a transient CI failure)
+currently appends a new referrer rather than replacing the prior one for that
+predicate type, so a given digest's Accessories list can carry more than one
+SBOM or provenance attestation over time; `cosign verify-attestation` still
+succeeds against any of them, but deduplication is not yet handled and may
+need a follow-up cleanup pass.
 
 ## Container Hardening
 
