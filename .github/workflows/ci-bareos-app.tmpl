@@ -152,7 +152,7 @@ jobs:
 
       - name: Install cosign
         if: success() || failure()
-        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
         with:
           cosign-release: 'v2.6.5'
 
@@ -230,8 +230,8 @@ jobs:
             sbom_file="${work_dir}/${ref##*@sha256:}.spdx.json"
             if retry cosign sign --yes "${ref}" \
               && { [[ -s "${sbom_file}" ]] || retry syft scan "registry:${ref}" -o "spdx-json=${sbom_file}"; } \
-              && retry cosign attest --yes --type spdxjson --predicate "${sbom_file}" "${ref}" \
-              && retry cosign attest --yes --type slsaprovenance --predicate "${provenance_file}" "${ref}"; then
+              && retry cosign attest --yes --new-bundle-format --type spdxjson --predicate "${sbom_file}" "${ref}" \
+              && retry cosign attest --yes --new-bundle-format --type slsaprovenance --predicate "${provenance_file}" "${ref}"; then
               echo "Signed and attested ${ref}"
             else
               echo "::error::Signing or attestation failed for ${ref}"

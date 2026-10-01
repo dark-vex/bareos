@@ -229,8 +229,8 @@ jobs:
             sbom_file="${work_dir}/${ref##*@sha256:}.spdx.json"
             if retry cosign sign --yes "${ref}" \
               && { [[ -s "${sbom_file}" ]] || retry syft scan "registry:${ref}" -o "spdx-json=${sbom_file}"; } \
-              && retry cosign attest --yes --type spdxjson --predicate "${sbom_file}" "${ref}" \
-              && retry cosign attest --yes --type slsaprovenance --predicate "${provenance_file}" "${ref}"; then
+              && retry cosign attest --yes --new-bundle-format --type spdxjson --predicate "${sbom_file}" "${ref}" \
+              && retry cosign attest --yes --new-bundle-format --type slsaprovenance --predicate "${provenance_file}" "${ref}"; then
               echo "Signed and attested ${ref}"
             else
               echo "::error::Signing or attestation failed for ${ref}"
