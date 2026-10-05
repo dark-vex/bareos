@@ -70,3 +70,12 @@ updates:
       - dependency-name: "python-bareos"
         update-types:
           - "version-update:semver-major"
+      # pydantic-core is a transitive pin pydantic controls exactly
+      # (pydantic==2.13.5 requires pydantic-core==2.46.5). Dependabot bumps
+      # this pin on its own, independent of pydantic, which breaks pip's
+      # resolver every time pydantic-core ships ahead of pydantic (see
+      # PR #109, closed as unresolvable). Remove this once a published
+      # pydantic release depends on pydantic-core>2.46.5.
+      - dependency-name: "pydantic-core"
+        versions:
+          - "> 2.46.5"
