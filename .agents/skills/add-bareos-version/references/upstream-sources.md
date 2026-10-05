@@ -116,6 +116,41 @@ These Dockerfiles install bare `uvicorn`, not `uvicorn[standard]`, so
 `--reload` uses uvicorn's `StatReload` fallback and never pulls in
 `watchfiles` at all.
 
+**Base image digest refresh (re-verified 2026-10-05)**: `api/23-alpine`,
+`api/24-alpine`, `api/25-alpine` bumped the `python:3.14-alpine` digest from
+`sha256:9e9fde4d32eedce0b661d9ab91e826b62dddf28e928c230ec55f1866cac66b01`
+(`3.14.7-alpine3.24`) to
+`sha256:f6a589d43c42b9e7f7dc67a12d37132491f362859a5d750607710cc56da3bc72`
+(`3.14.8-alpine3.24`), fixing CVE-2026-19445 (CRITICAL, public exploit)
+flagged by the Wiz `deploy` job's weekly scheduled scan against all six
+`api/{23,24,25}-alpine` × `{amd64,arm64}` build tags. Same-tag,
+same-Alpine-base, Python-patch-only refresh — confirmed via `docker buildx
+imagetools inspect python:3.14-alpine` (index covers both `linux/amd64` and
+`linux/arm64/v8`, both still built on `alpine:3.24`) and by running the pulled
+image directly (`python3 --version` → `3.14.8`; `cat /etc/alpine-release` →
+`3.24.2`), then re-confirmed on the final built `api` image (each Dockerfile
+runs `apk upgrade --no-cache`, which doesn't change these numbers here).
+
+Separately, the `requirements.txt` in each of these three directories was
+regenerated with `pip-compile --generate-hashes --strip-extras
+--upgrade-package fastapi==0.142.2 -o requirements.txt requirements.in`
+(Python 3.14.8, Alpine Linux 3.24.2, pip-tools 7.6.1) to unblock a Dependabot
+PR that bumped `fastapi` 0.141.1→0.142.2 but produced an incomplete/
+inconsistent lockfile: FastAPI 0.142.2 unconditionally introduces
+`opentelemetry-api>=1.44.0` as a new dependency, which Dependabot's
+patch-style update doesn't add in `--require-hashes` mode, and that PR
+separately bumped `pydantic-core` to `2.49.0` while leaving `pydantic` at
+`2.13.5` — whose published metadata requires `pydantic-core==2.46.5` exactly,
+an inconsistent pin. Letting the resolver run (rather than forcing either
+value) picked up `opentelemetry-api==1.45.0` and kept `pydantic-core==2.46.5`,
+the only version `pydantic==2.13.5` is actually compatible with. Verified per
+version/arch: `pip install --require-hashes` succeeds (build fails
+otherwise, since that's a `RUN` step in the Dockerfile), `pip check` reports
+no broken requirements, installed versions match
+(`fastapi==0.142.2`/`opentelemetry-api==1.45.0`/`pydantic==2.13.5`/
+`pydantic_core==2.46.5`), and a running container serves `/docs` with
+`HTTP 200` — all on both `linux/amd64` and `linux/arm64/v8`.
+
 ## Verification commands
 
 ```bash
