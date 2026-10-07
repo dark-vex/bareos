@@ -1,6 +1,13 @@
 # Set update schedule for GitHub Actions
 
 version: 2
+
+registries:
+  dockerhub-mirror:
+    type: docker-registry
+    url: https://mirror.gcr.io
+    replaces-base: true
+
 updates:
 
   - package-ecosystem: "github-actions"
@@ -19,6 +26,8 @@ updates:
       - "/.github/actions/*"
       - "/bareos-packages"
       - "/bareos-alpine-packages"
+    registries:
+      - "dockerhub-mirror"
     schedule:
       interval: "daily"
     groups:
