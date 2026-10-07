@@ -2,6 +2,11 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: ["config:recommended"],
 
+  // config:recommended pulls in :dependencyDashboard, which needs an
+  // Issues: write permission the App (Contents + Pull requests + Metadata
+  // only) does not grant. Keep the App's permission set minimal.
+  dependencyDashboard: false,
+
   // Only the docker ecosystem is handled here. github-actions and pip stay
   // on Dependabot (.github/dependabot.yml).
   enabledManagers: ["dockerfile"],
