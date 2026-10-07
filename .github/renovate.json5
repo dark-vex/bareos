@@ -1,0 +1,81 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["config:recommended"],
+
+  // config:recommended pulls in :dependencyDashboard, which needs an
+  // Issues: write permission the App (Contents + Pull requests + Metadata
+  // only) does not grant. Keep the App's permission set minimal.
+  dependencyDashboard: false,
+
+  // Only the docker ecosystem is handled here. github-actions and pip stay
+  // on Dependabot (.github/dependabot.yml).
+  enabledManagers: ["dockerfile"],
+
+  // dark-vex/bareos is itself a GitHub fork; Renovate's autodiscovery
+  // normally skips forks unless this is set.
+  forkProcessing: "enabled",
+
+  // Mirrors Dependabot's previous docker-ecosystem directory globs
+  // (directories: in dependabot.yml), expressed as Renovate file globs.
+  includePaths: [
+    "director-pgsql/2[3-5]-*/**",
+    "storage/2[3-5]-*/**",
+    "client/2[3-5]-*/**",
+    "webui/2[3-5]-*/**",
+    "api/2[3-5]-alpine/**",
+    ".github/actions/*/**",
+    "bareos-packages/**",
+    "bareos-alpine-packages/**",
+  ],
+
+  packageRules: [
+    // Deny by default, then explicitly allow-list the images this repo
+    // actually tracks. Needed because enabling the dockerfile manager on
+    // .github/actions/* would otherwise also pick up regctl's tag pin as
+    // an ungrouped dependency.
+    {
+      matchPackageNames: ["*"],
+      enabled: false,
+    },
+    {
+      matchPackageNames: [
+        "alpine",
+        "ubuntu",
+        "python",
+        "docker",
+        "ghcr.io/regclient/regctl",
+      ],
+      enabled: true,
+    },
+    // Mirrors Dependabot's previous ignore: rules - never propose major or
+    // minor bumps for these (e.g. no jammy -> noble), only patch/digest.
+    {
+      matchPackageNames: [
+        "alpine",
+        "ubuntu",
+        "python",
+        "docker",
+        "ghcr.io/regclient/regctl",
+      ],
+      matchUpdateTypes: ["major", "minor"],
+      enabled: false,
+    },
+    // Grouping for PR-review parity with Dependabot's previous groups:
+    {
+      matchPackageNames: ["alpine"],
+      groupName: "alpine",
+    },
+    {
+      matchPackageNames: ["ubuntu"],
+      groupName: "ubuntu",
+    },
+    {
+      matchPackageNames: ["python"],
+      groupName: "python",
+    },
+    {
+      matchPackageNames: ["docker"],
+      groupName: "docker-cli",
+    },
+  ],
+}
