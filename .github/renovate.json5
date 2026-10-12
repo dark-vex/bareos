@@ -42,7 +42,6 @@
       matchManagers: ["pip-compile"],
       enabled: true,
       groupName: "bareos-python-dependencies",
-      schedule: ["before 6am on monday"],
     },
     {
       matchManagers: ["pip-compile"],
