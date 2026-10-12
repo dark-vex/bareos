@@ -114,6 +114,7 @@ The CI uses reusable composite actions in `.github/actions/` (prepare, build, pu
   for 23/24/25 installs a package built by `bareos-alpine-packages/` — see its
   README before changing this table.
 - Current active versions: 23–25 (Ubuntu and Alpine)
+- Bundled PostgreSQL: Ubuntu compose = 16, Alpine compose = 17 (Ubuntu upgrade from 12 needs `pg_upgrade`, see README)
 - MySQL backend was dropped upstream in Bareos 21+; this repo no longer
   carries `director-mysql/` images. This repo's own `bareos-db-migration/`
   ships Dockerfile source only — its image was never published (CI never

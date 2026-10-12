@@ -43,6 +43,13 @@ docker-compose -f docker-compose.yml up
 After sucessful migration, use the new folder `/data/pgsql/data` and the
 PostgreSQL version related in your docker-compose file.
 
+> [!NOTE]
+> The migration compose file intentionally stays on `postgres:12` (the
+> `pg_dump` shipped with Bareos 20 / Ubuntu focal images limits the version, see
+> Compatibility below). The main Ubuntu stack now runs PostgreSQL 16, so after
+> migrating, upgrade the new cluster by following the
+> [PostgreSQL 12 to 16 wiki tutorial](https://github.com/dark-vex/bareos/wiki/Upgrade-PostgreSQL-12-to-16).
+
 ### Compatibility
 
 At this moment, latest Ubuntu based images are compliant with PostgreSQL 12 or

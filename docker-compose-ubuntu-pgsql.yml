@@ -120,7 +120,8 @@ services:
       - /data/bareos/config/webui:/etc/bareos-webui
 
   bareos-db:
-    image: postgres:12@sha256:2f2a8c2a7d10862e7fba2602e304523554f9df8244c632dafe2628ccb398fb5c
+    # Existing PG12 data needs pg_upgrade before this starts, see the wiki tutorial linked in README.md
+    image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
     volumes:
       - /data/pgsql/data:/var/lib/postgresql/data
     environment:
