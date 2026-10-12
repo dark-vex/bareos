@@ -35,3 +35,6 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
         env:
           RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # pip-compile needs Python + pip-tools; install them on demand
+          # (versions come from the lockfile header) instead of baking them in.
+          RENOVATE_BINARY_SOURCE: install

@@ -7,9 +7,19 @@
   // only) does not grant. Keep the App's permission set minimal.
   dependencyDashboard: false,
 
-  // Only the docker ecosystem is handled here. github-actions and pip stay
-  // on Dependabot (.github/dependabot.yml).
-  enabledManagers: ["dockerfile"],
+  // The docker and pip-compile ecosystems are handled here. Only
+  // github-actions stays on Dependabot (.github/dependabot.yml).
+  // pip-compile re-runs pip-compile to regenerate the hash-pinned lockfiles,
+  // so versions, hashes and exact transitive pins (e.g. pydantic <->
+  // pydantic-core) stay consistent, unlike Dependabot's textual edits
+  // (see PRs #109, #110, #114).
+  enabledManagers: ["dockerfile", "pip-compile"],
+
+  // The pip-compile manager matches the generated lockfile and reads its
+  // source file (requirements.in) from the pip-compile header.
+  "pip-compile": {
+    managerFilePatterns: ["/^api/2[3-5]-alpine/requirements\\.txt$/"],
+  },
 
   // dark-vex/bareos is itself a GitHub fork; Renovate's autodiscovery
   // normally skips forks unless this is set.
@@ -46,6 +56,21 @@
         "ghcr.io/regclient/regctl",
       ],
       enabled: true,
+    },
+    // Python dependencies of the api images, resolved by pip-compile.
+    {
+      matchManagers: ["pip-compile"],
+      enabled: true,
+      groupName: "bareos-python-dependencies",
+      schedule: ["before 6am on monday"],
+    },
+    // Never propose major bumps of the Bareos packages (they track the
+    // Bareos release the image directory is named after).
+    {
+      matchManagers: ["pip-compile"],
+      matchPackageNames: ["bareos-restapi", "python-bareos"],
+      matchUpdateTypes: ["major"],
+      enabled: false,
     },
     // Mirrors Dependabot's previous ignore: rules - never propose major or
     // minor bumps for these (e.g. no jammy -> noble), only patch/digest.
