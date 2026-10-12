@@ -2,21 +2,16 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: ["config:recommended"],
 
-  // config:recommended pulls in :dependencyDashboard, which needs an
-  // Issues: write permission the App (Contents + Pull requests + Metadata
-  // only) does not grant. Keep the App's permission set minimal.
   dependencyDashboard: false,
 
-  // Only the docker ecosystem is handled here. github-actions and pip stay
-  // on Dependabot (.github/dependabot.yml).
-  enabledManagers: ["dockerfile"],
+  enabledManagers: ["dockerfile", "pip-compile"],
 
-  // dark-vex/bareos is itself a GitHub fork; Renovate's autodiscovery
-  // normally skips forks unless this is set.
+  "pip-compile": {
+    managerFilePatterns: ["/^api/2[3-5]-alpine/requirements\\.txt$/"],
+  },
+
   forkProcessing: "enabled",
 
-  // Mirrors Dependabot's previous docker-ecosystem directory globs
-  // (directories: in dependabot.yml), expressed as Renovate file globs.
   includePaths: [
     "director-pgsql/2[3-5]-*/**",
     "storage/2[3-5]-*/**",
@@ -29,10 +24,6 @@
   ],
 
   packageRules: [
-    // Deny by default, then explicitly allow-list the images this repo
-    // actually tracks. Needed because enabling the dockerfile manager on
-    // .github/actions/* would otherwise also pick up regctl's tag pin as
-    // an ungrouped dependency.
     {
       matchPackageNames: ["*"],
       enabled: false,
@@ -47,8 +38,18 @@
       ],
       enabled: true,
     },
-    // Mirrors Dependabot's previous ignore: rules - never propose major or
-    // minor bumps for these (e.g. no jammy -> noble), only patch/digest.
+    {
+      matchManagers: ["pip-compile"],
+      enabled: true,
+      groupName: "bareos-python-dependencies",
+      schedule: ["before 6am on monday"],
+    },
+    {
+      matchManagers: ["pip-compile"],
+      matchPackageNames: ["bareos-restapi", "python-bareos"],
+      matchUpdateTypes: ["major"],
+      enabled: false,
+    },
     {
       matchPackageNames: [
         "alpine",
@@ -60,7 +61,6 @@
       matchUpdateTypes: ["major", "minor"],
       enabled: false,
     },
-    // Grouping for PR-review parity with Dependabot's previous groups:
     {
       matchPackageNames: ["alpine"],
       groupName: "alpine",
