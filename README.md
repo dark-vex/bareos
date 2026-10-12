@@ -203,6 +203,18 @@ Available compose files:
 
 The compose examples store data under `/data/(bareos|pgsql)`.
 
+PostgreSQL versions differ per stack: the Ubuntu example runs PostgreSQL 16,
+the Alpine example PostgreSQL 17.
+
+> [!WARNING]
+> **Upgrading the Ubuntu stack from PostgreSQL 12 to 16.** The Ubuntu compose
+> file used to run `postgres:12`. An existing `/data/pgsql/data` directory
+> created by PostgreSQL 12 is not readable by `postgres:16` (it fails with
+> "database files are incompatible with server"); run `pg_upgrade` first.
+> Follow the step-by-step tutorial in the
+> [wiki](https://github.com/dark-vex/bareos/wiki/Upgrade-PostgreSQL-12-to-16).
+> Fresh installs are not affected.
+
 The Alpine compose files also run a `php-fpm` sidecar for the WebUI. In
 `docker-compose-alpine-pgsql.yml` it uses the `darkvex/bareos-webui` image
 itself, which ships PHP-FPM listening on port 9000, started with
