@@ -223,7 +223,7 @@ or dump/restore, not just an image bump.
 > by `postgres:17` (it fails with "database files are incompatible with
 > server"); run `pg_upgrade` (or dump/restore) first, after taking a backup of
 > the data directory. Follow the step-by-step tutorial in the
-> [wiki](https://github.com/dark-vex/bareos/wiki/Upgrade-PostgreSQL-12-16-to-17).
+> [wiki](https://github.com/dark-vex/bareos/wiki/Upgrade%E2%80%90PostgreSQL%E2%80%9012%E2%80%90to%E2%80%9016).
 > Fresh installs are not affected.
 
 The Alpine compose files also run a `php-fpm` sidecar for the WebUI. In
