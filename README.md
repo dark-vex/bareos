@@ -211,11 +211,10 @@ The compose examples store data under `/data/(bareos|pgsql)`.
 Both example stacks run PostgreSQL 17. External or self-managed catalog servers
 may be PostgreSQL 16, 17 or 18 (`23-alpine`: 16 or 17 only; see above).
 
-> [!NOTE]
-> PostgreSQL 18 images keep data in `/var/lib/postgresql/18/docker`, so mount
-> the volume at `/var/lib/postgresql` instead of `/var/lib/postgresql/data`.
-> Moving a setup to 18 therefore needs a volume-mount change plus a
-> `pg_upgrade` or dump/restore, not just an image bump.
+Note: PostgreSQL 18 images keep data in `/var/lib/postgresql/18/docker`, so
+mount the volume at `/var/lib/postgresql` instead of `/var/lib/postgresql/data`.
+Moving a setup to 18 therefore needs a volume-mount change plus a `pg_upgrade`
+or dump/restore, not just an image bump.
 
 > [!WARNING]
 > **Upgrading existing Ubuntu-stack data from PostgreSQL 12 or 16 to 17.** The
