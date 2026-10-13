@@ -32,7 +32,7 @@ ARG BAREOS_APK_SHA256_AARCH64=113a797543cd23c7983a41d6ca586e00466f086db1d5d5868c
 COPY bareos-apk@dark-vex.rsa.pub /etc/apk/keys/bareos-apk@dark-vex.rsa.pub
 
 RUN apk upgrade --no-cache \
- && apk add --no-cache postgresql-client curl tzdata tar \
+ && apk add --no-cache postgresql18-client curl tzdata tar \
  && if [ "$TARGETARCH" = "amd64" ]; then \
       apk add --no-cache bareos; \
     else \

@@ -101,6 +101,11 @@ actively maintained images.
 | 22 | `22-ubuntu` on Ubuntu 22.04 | `22-alpine` on Alpine 3.18 | — | Deprecated: existing tags remain published but frozen, no further rebuilds or CVE patches (see Deprecated Tags above); `bareos-restapi` 22.x fails to import (see `bareos-api` tags above) |
 | 21 and older | — | — | — | Removed from this repository — git history keeps the old Dockerfiles. No `16`–`21` tag remains on Docker Hub under `darkvex/`; `director-mysql/` (MySQL catalog backend, dropped upstream in Bareos 21) was removed in full. See the notes below for an upstream fallback and the MySQL migration path. |
 
+Ubuntu images support `linux/amd64` only. Bareos 23-25 Alpine images support
+`linux/amd64` and `linux/arm64/v8`; `linux/arm/v7` is no longer built. Both
+bundled compose examples use PostgreSQL 17.
+Catalog servers PostgreSQL 16, 17 and 18 are supported (the director's `pg_dump` is 18, except `23-alpine`, whose Alpine 3.21 base only has the 17 client, so it supports 16 and 17 only).
+
 Upstream `barcus/bareos` (the project this repo was forked from) still
 publishes Bareos 18–22 images (`barcus/bareos-director:21-ubuntu`, etc.) —
 a fallback if you need one of these versions, not a recommendation: its
@@ -203,16 +208,23 @@ Available compose files:
 
 The compose examples store data under `/data/(bareos|pgsql)`.
 
-PostgreSQL versions differ per stack: the Ubuntu example runs PostgreSQL 16,
-the Alpine example PostgreSQL 17.
+Both example stacks run PostgreSQL 17. External or self-managed catalog servers
+may be PostgreSQL 16, 17 or 18 (`23-alpine`: 16 or 17 only; see above).
+
+> [!NOTE]
+> PostgreSQL 18 images keep data in `/var/lib/postgresql/18/docker`, so mount
+> the volume at `/var/lib/postgresql` instead of `/var/lib/postgresql/data`.
+> Moving a setup to 18 therefore needs a volume-mount change plus a
+> `pg_upgrade` or dump/restore, not just an image bump.
 
 > [!WARNING]
-> **Upgrading the Ubuntu stack from PostgreSQL 12 to 16.** The Ubuntu compose
-> file used to run `postgres:12`. An existing `/data/pgsql/data` directory
-> created by PostgreSQL 12 is not readable by `postgres:16` (it fails with
-> "database files are incompatible with server"); run `pg_upgrade` first.
-> Follow the step-by-step tutorial in the
-> [wiki](https://github.com/dark-vex/bareos/wiki/Upgrade-PostgreSQL-12-to-16).
+> **Upgrading existing Ubuntu-stack data from PostgreSQL 12 or 16 to 17.** The
+> Ubuntu compose file used to run `postgres:12`, then `postgres:16`. An existing
+> `/data/pgsql/data` directory created by an older major version is not readable
+> by `postgres:17` (it fails with "database files are incompatible with
+> server"); run `pg_upgrade` (or dump/restore) first, after taking a backup of
+> the data directory. Follow the step-by-step tutorial in the
+> [wiki](https://github.com/dark-vex/bareos/wiki/Upgrade-PostgreSQL-12-16-to-17).
 > Fresh installs are not affected.
 
 The Alpine compose files also run a `php-fpm` sidecar for the WebUI. In

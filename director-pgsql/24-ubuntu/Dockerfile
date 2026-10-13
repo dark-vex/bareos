@@ -22,13 +22,24 @@ ARG BAREOS_PKG_RELEASE=pkg%2Fbareos-packages-v1
 ARG BAREOS_PKG_REPO=https://github.com/Dark-Vex/bareos
 ARG BAREOS_PKG_ASSET=bareos-24-noble.tar.gz
 
+ARG PGDG_KEY=https://www.postgresql.org/media/keys/ACCC4CF8.asc
+ARG PGDG_KEY_FINGERPRINT=B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+ARG PGDG_SUITE=noble
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update -qq \
- && apt-get install -qq -y --no-install-recommends ca-certificates curl \
+ && apt-get install -qq -y --no-install-recommends ca-certificates curl gnupg \
  && mkdir -p /tmp/bareos-debs \
  && curl -fsSL "${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/${BAREOS_PKG_ASSET}" -o /tmp/bareos-pkgs.tar.gz \
  && tar -xzf /tmp/bareos-pkgs.tar.gz -C /tmp/bareos-debs \
+ && curl -fsSL "${PGDG_KEY}" -o /tmp/pgdg.key \
+ && test "$(gpg --batch --show-keys --with-colons /tmp/pgdg.key | awk -F: '$1 == "fpr" { print $10 }')" = "${PGDG_KEY_FINGERPRINT}" \
+ && gpg --batch --dearmor -o /usr/share/keyrings/pgdg.gpg /tmp/pgdg.key \
+ && rm -f /tmp/pgdg.key \
+ && echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt ${PGDG_SUITE}-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list \
+ && apt-get update -qq \
  && echo "${BAREOS_DPKG_CONF}/dbconfig-install boolean false" \
     | debconf-set-selections \
  && echo "${BAREOS_DPKG_CONF}/install-error select ignore" \
@@ -40,7 +51,7 @@ RUN apt-get update -qq \
  && echo 'postfix postfix/main_mailer_type select No configuration' \
     | debconf-set-selections \
  && apt-get install -qq -y --no-install-recommends \
-    tzdata postgresql-client \
+    tzdata postgresql-client-18 \
     /tmp/bareos-debs/bareos-bconsole_*.deb \
     /tmp/bareos-debs/bareos-common_*.deb \
     /tmp/bareos-debs/bareos-director_*.deb \
@@ -49,7 +60,7 @@ RUN apt-get update -qq \
     /tmp/bareos-debs/bareos-database-tools_*.deb \
     /tmp/bareos-debs/bareos-tools_*.deb \
  && apt-get clean \
- && rm -rf /var/lib/apt/lists/* /tmp/bareos-pkgs.tar.gz /tmp/bareos-debs
+ && rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/pgdg.list /tmp/bareos-pkgs.tar.gz /tmp/bareos-debs
 
 RUN tar czf /bareos-dir.tgz /etc/bareos
 
