@@ -168,6 +168,21 @@ if [ ! -f /etc/bareos/bareos-config.control ]; then
   sed -i "s#/var/lib/bareos/bareos.sql#/var/lib/bareos-director/bareos.sql#" \
     /etc/bareos/bareos-dir.d/fileset/Catalog.conf
 
+  # make_catalog_backup runs pg_dump as the director user and gets the
+  # catalog password only from ~/.pgpass
+  homedir=$(getent passwd bareos | cut -d: -f6)
+  if [ -n "${homedir}" ]; then
+    printf '%s:%s:%s:%s:%s\n' \
+      "$(pgpass_field DB_HOST "${DB_HOST:-}")" \
+      "$(pgpass_field DB_PORT "${DB_PORT:-}")" \
+      "$(pgpass_field DB_NAME "${DB_NAME:-}")" \
+      "$(pgpass_field DB_USER "${DB_USER:-}")" \
+      "$(pgpass_field DB_PASSWORD "${DB_PASSWORD:-}")" \
+      > "${homedir}/.pgpass"
+    chmod 600 "${homedir}/.pgpass"
+    chown bareos "${homedir}/.pgpass"
+  fi
+
   # Control file
   touch /etc/bareos/bareos-config.control
 fi
@@ -224,6 +239,10 @@ fi
 # Fix permissions
 find /etc/bareos ! -user bareos -exec chown bareos {} \;
 chown -R bareos:bareos /var/lib/bareos
+
+# The director runs with HOME=/root, so point pg_dump (make_catalog_backup) at
+# the .pgpass written for the bareos user
+export PGPASSFILE=/var/lib/bareos/.pgpass
 
 # Run Dockerfile CMD
 exec "$@"

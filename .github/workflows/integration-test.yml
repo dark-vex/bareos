@@ -62,6 +62,22 @@ jobs:
           docker build -t "itest/webui:${tag}" "webui/${tag}"
           docker build -t "itest/api:${VERSION}" "api/${VERSION}-alpine"
 
+      - name: Check pg_dump client version
+        env:
+          VERSION: ${{ matrix.version }}
+          FLAVOR: ${{ matrix.flavor }}
+        run: |
+          set -euo pipefail
+          # 23-alpine only has the generic Alpine 3.21 client (17); all others ship 18.
+          expected=18
+          if [ "$VERSION" = "23" ] && [ "$FLAVOR" = "alpine" ]; then expected=17; fi
+          out="$(docker run --rm --entrypoint pg_dump "itest/director:${VERSION}-${FLAVOR}" --version)"
+          echo "$out"
+          case "$out" in
+            *" ${expected}."*) ;;
+            *) echo "expected pg_dump ${expected}.x" >&2; exit 1 ;;
+          esac
+
       - name: Run integration test
         env:
           DIR_IMAGE: itest/director:${{ matrix.version }}-${{ matrix.flavor }}
@@ -70,5 +86,22 @@ jobs:
           WEBUI_IMAGE: itest/webui:${{ matrix.version }}-${{ matrix.flavor }}
           API_IMAGE: itest/api:${{ matrix.version }}
           FLAVOR: ${{ matrix.flavor }}
-          PROJECT: itest${{ matrix.version }}${{ matrix.flavor }}
-        run: bash tests/integration/stack-test.sh
+          VERSION: ${{ matrix.version }}
+        run: |
+          set -euo pipefail
+          # Digests of postgres:<major>-alpine; refreshed manually (Renovate does
+          # not track these): docker buildx imagetools inspect postgres:<major>-alpine
+          declare -A PG_IMAGES=(
+            [16]="postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea"
+            [17]="postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24"
+            [18]="postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873"
+          )
+          majors=(16 17 18)
+          # Alpine 3.21 (Bareos 23) has no PG18 client.
+          if [ "$VERSION" = "23" ] && [ "$FLAVOR" = "alpine" ]; then majors=(16 17); fi
+          for m in "${majors[@]}"; do
+            echo "::group::stack test against PostgreSQL ${m}"
+            PG_IMAGE="${PG_IMAGES[$m]}" PROJECT="itest${VERSION}${FLAVOR}pg${m}" \
+              bash tests/integration/stack-test.sh
+            echo "::endgroup::"
+          done

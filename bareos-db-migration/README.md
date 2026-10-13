@@ -46,15 +46,17 @@ PostgreSQL version related in your docker-compose file.
 > [!NOTE]
 > The migration compose file intentionally stays on `postgres:12` (the
 > `pg_dump` shipped with Bareos 20 / Ubuntu focal images limits the version, see
-> Compatibility below). The main Ubuntu stack now runs PostgreSQL 16, so after
-> migrating, upgrade the new cluster by following the
-> [PostgreSQL 12 to 16 wiki tutorial](https://github.com/dark-vex/bareos/wiki/Upgrade-PostgreSQL-12-to-16).
+> Compatibility below). The main stacks now run PostgreSQL 17, so after
+> migrating, upgrade the new cluster from 12 straight to 17 by following the
+> [PostgreSQL 12/16 to 17 wiki tutorial](https://github.com/dark-vex/bareos/wiki/Upgrade-PostgreSQL-12-16-to-17)
+> (or go 12 -> 16 -> 17 if you prefer).
 
 ### Compatibility
 
-At this moment, latest Ubuntu based images are compliant with PostgreSQL 12 or
-less and Alpine ones with PostgreSQL 14. This is due to the version of `pg_dump`
-which is required to dump Bareos database (catalog).
+The limits below apply to the migration image itself (Bareos 19/20 with
+Ubuntu focal / old Alpine `pg_dump`), which is why it stays on `postgres:12`.
+They are historical for the main images: the current `director-pgsql` images
+(Bareos 23-25) support PostgreSQL 16, 17 and 18 (`23-alpine`: 16 and 17).
 
 Ubuntu images:
 

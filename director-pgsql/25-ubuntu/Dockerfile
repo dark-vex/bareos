@@ -22,6 +22,10 @@ ARG BAREOS_KEY=https://download.bareos.org/current/xUbuntu_24.04/Release.key
 ARG BAREOS_REPO=https://download.bareos.org/current/xUbuntu_24.04/
 ARG BAREOS_KEY_FINGERPRINT=82834CF002D89BA55C1ED0AA42DA24A6DFEF9127
 
+ARG PGDG_KEY=https://www.postgresql.org/media/keys/ACCC4CF8.asc
+ARG PGDG_KEY_FINGERPRINT=B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+ARG PGDG_SUITE=noble
+
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update -qq \
@@ -32,6 +36,12 @@ RUN apt-get update -qq \
  && rm -f /tmp/bareos.key \
  && echo "deb [signed-by=/usr/share/keyrings/bareos.gpg] ${BAREOS_REPO} /" \
       > /etc/apt/sources.list.d/bareos.list \
+ && curl -fsSL "${PGDG_KEY}" -o /tmp/pgdg.key \
+ && test "$(gpg --batch --show-keys --with-colons /tmp/pgdg.key | awk -F: '$1 == "fpr" { print $10 }')" = "${PGDG_KEY_FINGERPRINT}" \
+ && gpg --batch --dearmor -o /usr/share/keyrings/pgdg.gpg /tmp/pgdg.key \
+ && rm -f /tmp/pgdg.key \
+ && echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt ${PGDG_SUITE}-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list \
  && echo "${BAREOS_DPKG_CONF}/dbconfig-install boolean false" \
     | debconf-set-selections \
  && echo "${BAREOS_DPKG_CONF}/install-error select ignore" \
@@ -44,7 +54,7 @@ RUN apt-get update -qq \
     | debconf-set-selections \
  && apt-get update -qq \
  && apt-get install -qq -y --no-install-recommends \
-    curl tzdata postgresql-client \
+    curl tzdata postgresql-client-18 \
     bareos-bconsole \
     bareos-common \
     bareos-director \
@@ -53,7 +63,7 @@ RUN apt-get update -qq \
     bareos-database-tools \
     bareos-tools \
  && apt-get clean \
- && rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/bareos.list
+ && rm -rf /var/lib/apt/lists/* /etc/apt/sources.list.d/bareos.list /etc/apt/sources.list.d/pgdg.list
 
 RUN tar czf /bareos-dir.tgz /etc/bareos
 

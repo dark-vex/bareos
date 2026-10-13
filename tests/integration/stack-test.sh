@@ -13,6 +13,17 @@ set -euo pipefail
 
 PG_IMAGE="${PG_IMAGE:-postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24}"
 CURL_IMAGE="${CURL_IMAGE:-curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777}"
+PG_MAJOR="${PG_IMAGE#*postgres:}"
+PG_MAJOR="${PG_MAJOR%%[!0-9]*}"
+# PG18+ images moved PGDATA under /var/lib/postgresql/<major>/docker and refuse
+# a mount at the old /var/lib/postgresql/data; 16/17 still need the old path.
+if [ -z "${PG_DATA_MOUNT:-}" ]; then
+  if [ -n "$PG_MAJOR" ] && [ "$PG_MAJOR" -ge 18 ]; then
+    PG_DATA_MOUNT=/var/lib/postgresql
+  else
+    PG_DATA_MOUNT=/var/lib/postgresql/data
+  fi
+fi
 FLAVOR="${FLAVOR:-alpine}"
 DIR_INIT_TIMEOUT="${DIR_INIT_TIMEOUT:-180}"
 JOB_TIMEOUT="${JOB_TIMEOUT:-180}"
@@ -90,7 +101,7 @@ cleanup() {
     fi
   fi
   for c in "${ALL_CONTAINERS[@]}"; do
-    docker rm -f "$c" >/dev/null 2>&1 || true
+    docker rm -fv "$c" >/dev/null 2>&1 || true
   done
   docker network rm "$NET" >/dev/null 2>&1 || true
   for v in "${ALL_VOLUMES[@]}"; do
@@ -164,7 +175,7 @@ create_network_and_db() {
     -e POSTGRES_USER="$DB_ADMIN_USER" \
     -e POSTGRES_PASSWORD="$DB_ADMIN_PASSWORD" \
     -e POSTGRES_INITDB_ARGS='--encoding=SQL_ASCII' \
-    -v "${VOL_DB}:/var/lib/postgresql/data" \
+    -v "${VOL_DB}:${PG_DATA_MOUNT}" \
     "$PG_IMAGE" >/dev/null
   wait_for "postgres ready" 90 \
     docker exec "$DB" pg_isready -U "$DB_ADMIN_USER"
@@ -348,6 +359,39 @@ run_full_backup() {
   wait_job_terminated "$jobid" "$JOB_TIMEOUT"
 }
 
+run_catalog_backup() {
+  local out jobid
+  out="$(bconsole_cmd "run job=BackupCatalog level=Full yes" 2>/dev/null)"
+  jobid="$(printf '%s\n' "$out" | sed -n 's/.*JobId=\([0-9][0-9]*\).*/\1/p' | head -n1)"
+  if [ -z "$jobid" ]; then
+    log "could not determine BackupCatalog jobid from output:"
+    log "$out"
+    return 1
+  fi
+  # The stack has no working SMTP relay, so the bootstrap mail makes this job
+  # end with warnings (W); what matters is that the pg_dump BeforeJob succeeded.
+  local waited=0 st log_out
+  while [ "$waited" -lt "$JOB_TIMEOUT" ]; do
+    st="$(job_status "$jobid" || true)"
+    case "$st" in
+      T|W) break ;;
+      f|E|A) log "job $jobid ended with status $st"; break ;;
+    esac
+    sleep 3
+    waited=$((waited + 3))
+  done
+  log_out="$(bconsole_cmd "list joblog jobid=${jobid}" 2>/dev/null)"
+  if printf '%s\n' "$log_out" | grep -q "BeforeJob returned non-zero"; then
+    log "catalog dump (make_catalog_backup) failed:"
+    printf '%s\n' "$log_out" | grep "BeforeJob" >&2
+    return 1
+  fi
+  case "$st" in
+    T|W) return 0 ;;
+    *) log "job $jobid did not finish (last status: ${st:-unknown})"; return 1 ;;
+  esac
+}
+
 backup_jobid() {
   cat "$STATE_DIR/backup-jobid"
 }
@@ -455,6 +499,8 @@ main() {
 
   step "write backup marker file on fd" write_marker
   step "run Full backup job" run_full_backup
+
+  step "run BackupCatalog job (pg_dump client/server match)" run_catalog_backup
 
   step "restore backup job" run_restore
   step "restored marker content matches" restore_content_matches
