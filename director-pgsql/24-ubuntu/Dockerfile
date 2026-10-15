@@ -29,6 +29,7 @@ ARG PGDG_SUITE=noble
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update -qq \
+ && apt-get upgrade -qq -y \
  && apt-get install -qq -y --no-install-recommends ca-certificates curl gnupg \
  && mkdir -p /tmp/bareos-debs \
  && curl -fsSL "${BAREOS_PKG_REPO}/releases/download/${BAREOS_PKG_RELEASE}/${BAREOS_PKG_ASSET}" -o /tmp/bareos-pkgs.tar.gz \

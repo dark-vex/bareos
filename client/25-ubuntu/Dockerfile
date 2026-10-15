@@ -26,6 +26,7 @@ ARG BAREOS_KEY_FINGERPRINT=82834CF002D89BA55C1ED0AA42DA24A6DFEF9127
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update -qq \
+ && apt-get upgrade -qq -y \
  && apt-get install -qq -y --no-install-recommends curl gnupg ca-certificates \
  && curl -fsSL "${BAREOS_KEY}" -o /tmp/bareos.key \
  && test "$(gpg --batch --show-keys --with-colons /tmp/bareos.key | awk -F: '$1 == "fpr" { print $10 }')" = "${BAREOS_KEY_FINGERPRINT}" \
