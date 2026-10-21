@@ -24,7 +24,7 @@ RUN apk update \
  && apk del gnupg \
  && rm -rf /tmp/wizcli /root/.gnupg /var/cache/apk/*
 
-COPY --from=ghcr.io/regclient/regctl:v0.11.6 /regctl /usr/local/bin/regctl
+COPY --from=ghcr.io/regclient/regctl:v0.11.7 /regctl /usr/local/bin/regctl
 COPY entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
