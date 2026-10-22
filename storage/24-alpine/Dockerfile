@@ -1,5 +1,5 @@
 # Dockerfile Bareos storage daemon
-FROM alpine:3.23@sha256:85fe1e81d6758c208f3e1eed4338a1997e19d4be002d4dd32d3100c9a8c010a0
+FROM alpine:3.23@sha256:21f3e19bafab57a9ff7aa9dd571dac72f868370472c10f450cc0416cc1aca553
 
 LABEL maintainer="bareos@ddlns.net"
 
