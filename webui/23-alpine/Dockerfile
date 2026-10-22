@@ -1,5 +1,5 @@
 # Bareos Web-ui Dockerfile
-FROM alpine:3.21@sha256:fbea4ca676632cb44223a6a040cac2c7e6c108e23aebc10bb7b1d893b6d9acdd
+FROM alpine:3.21@sha256:bbfcd601d7cd20d35bb0b8b866ad1a8a0d107ca3e1c20870c75c5ce2c1186d30
 
 LABEL maintainer="bareos@ddlns.net"
 
