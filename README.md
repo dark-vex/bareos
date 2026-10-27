@@ -95,7 +95,7 @@ actively maintained images.
 
 | Bareos version | Ubuntu image | Alpine image | API image | Notes |
 |:--|:--|:--|:--|:--|
-| 25 | `25-ubuntu` on Ubuntu 24.04 | `25-alpine` on Alpine 3.24 | `25-alpine` | Ubuntu from `download.bareos.org/current/`; Alpine amd64+arm64/v8 |
+| 25 | `25-ubuntu` on Ubuntu 24.04 | `25-alpine` on Alpine 3.24 | `25-alpine` | Ubuntu from `download.bareos.org/current/` (moving feed, serves `~pre` builds); Alpine amd64+arm64/v8 |
 | 24 | `24-ubuntu` on Ubuntu 24.04 | `24-alpine` on Alpine 3.23 | `24-alpine` (latest) | Ubuntu from GitHub package release; Alpine amd64+arm64/v8 |
 | 23 | `23-ubuntu` on Ubuntu 22.04 | `23-alpine` on Alpine 3.21 | `23-alpine` | Ubuntu from GitHub package release; Alpine amd64+arm64/v8 |
 | 22 | `22-ubuntu` on Ubuntu 22.04 | `22-alpine` on Alpine 3.18 | — | Deprecated: existing tags remain published but frozen, no further rebuilds or CVE patches (see Deprecated Tags above); `bareos-restapi` 22.x fails to import (see `bareos-api` tags above) |
@@ -137,7 +137,8 @@ against the new image.
 
 ## Package Releases
 
-`download.bareos.org/current/` tracks the latest Bareos release and does not
+`download.bareos.org/current/` is a moving feed that serves upstream
+pre-release (`~pre`) builds of the newest Bareos and does not
 provide pinned 23 or 24 Ubuntu repositories. This repo builds pinned `.deb`
 packages from upstream Bareos release tags and publishes them as GitHub Release
 assets.
@@ -238,6 +239,21 @@ proxy with TLS in front of them, or change the port mapping (for example
 `8080:9100` instead of `127.0.0.1:8080:9100`) if you really need direct
 remote access. The storage daemon port `9103` stays published on all
 interfaces because file daemons on other hosts connect to it.
+
+WebUI behind a reverse proxy: recent WebUI builds (`25-ubuntu`, Bareos
+25.1.2+) reject state-changing requests (POST, e.g. login) with `403` unless
+they carry same-origin proof (`Sec-Fetch-Site: same-origin`, or an `Origin`
+header matching the request's own origin). Browsers behind a TLS proxy work
+as-is. A plain-HTTP proxy must preserve the original `Host` header (for nginx:
+`proxy_set_header Host $host;`), or you must list the proxy's IP address in
+`/etc/bareos-webui/configuration.ini`:
+
+```ini
+[trusted_proxies]
+addresses[] = "192.0.2.10"
+```
+
+Only exact IP addresses are accepted, not CIDR ranges.
 
 ## Secrets
 

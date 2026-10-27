@@ -88,6 +88,11 @@ dump_logs() {
       docker logs "$c" 2>&1 | tail -n 300 || true
     fi
   done
+  if docker inspect "$WEBUI" >/dev/null 2>&1; then
+    log "==== webui apache/php-fpm logs ===="
+    docker exec "$WEBUI" sh -c \
+      'tail -n 50 /var/log/apache2/error.log /var/log/php*-fpm.log 2>&1' || true
+  fi
   log "---- end container logs ----"
 }
 
@@ -418,13 +423,20 @@ restore_content_matches() {
 }
 
 webui_login_attempt() {
-  local port="$1" password="$2"
+  local port="$1" password="$2" origin="${3:-}"
+  # Newer webui builds reject POSTs without same-origin proof (SameOriginListener).
+  # curl omits :80 from Host, so do the same for the Origin we send.
+  if [ -z "$origin" ]; then
+    origin="http://bareos-webui"
+    [ "$port" = "80" ] || origin="${origin}:${port}"
+  fi
   docker run --rm --network "$NET" -e URL="http://bareos-webui:${port}/index.php/auth/login" \
-    -e PASSWORD="$password" --entrypoint sh "$CURL_IMAGE" -c '
+    -e PASSWORD="$password" -e ORIGIN="$origin" --entrypoint sh "$CURL_IMAGE" -c '
       field() { tr ">" "\n" < /tmp/page | sed -n "s/.*name=\"$1\".*value=\"\([^\"]*\)\".*/\1/p" | head -n1; }
       curl -s -D /tmp/headers -o /tmp/page "$URL"
       sid=$(sed -n "s/^[Ss]et-[Cc]ookie: \(bareos=[^;]*\).*/\1/p" /tmp/headers | head -n1)
-      curl -s -o /dev/null -w "%{http_code}" -H "Cookie: ${sid}" \
+      curl -s -o /dev/null -w "%{http_code} %{redirect_url}" -H "Cookie: ${sid}" \
+        -H "Origin: ${ORIGIN}" \
         --data-urlencode "director=$(field director)" \
         --data-urlencode "consolename=admin" \
         --data-urlencode "password=${PASSWORD}" \
@@ -435,18 +447,31 @@ webui_login_attempt() {
     '
 }
 
+# Usage: webui_login_expect <expected-code> <password> [origin]
+webui_login_expect() {
+  local expected="$1" out
+  shift
+  out="$(webui_login_attempt "$(webui_port)" "$@")"
+  [ "${out%% *}" = "$expected" ] && return 0
+  log "login POST returned: ${out} (expected ${expected})"
+  return 1
+}
+
 webui_login_ok() {
-  local port code
-  port="$(webui_port)"
-  code="$(webui_login_attempt "$port" "$BAREOS_WEBUI_PASSWORD")"
-  [ "$code" = "302" ]
+  webui_login_expect 302 "$BAREOS_WEBUI_PASSWORD"
 }
 
 webui_login_wrong_password_rejected() {
-  local port code
-  port="$(webui_port)"
-  code="$(webui_login_attempt "$port" "definitely-wrong-password")"
-  [ "$code" = "200" ]
+  webui_login_expect 200 "definitely-wrong-password"
+}
+
+webui_cross_origin_post_rejected() {
+  if ! docker exec "$WEBUI" test -f \
+    /usr/share/bareos-webui/module/Application/src/Application/Listener/SameOriginListener.php 2>/dev/null; then
+    log "SameOriginListener not present in this webui build; skipped"
+    return 0
+  fi
+  webui_login_expect 403 "$BAREOS_WEBUI_PASSWORD" "http://evil.example"
 }
 
 api_token() {
@@ -507,6 +532,7 @@ main() {
 
   step "webui login with correct password" webui_login_ok
   step "webui login with wrong password is rejected" webui_login_wrong_password_rejected
+  step "webui rejects cross-origin login POST" webui_cross_origin_post_rejected
 
   step "api: obtain JWT with correct password" api_login_ok
   step "api: wrong password rejected" api_login_wrong_password_rejected
