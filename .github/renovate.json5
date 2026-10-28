@@ -10,6 +10,11 @@
     managerFilePatterns: ["/^api/2[3-5]-alpine/requirements\\.txt$/"],
   },
 
+  lockFileMaintenance: {
+    enabled: true,
+    schedule: ["at any time"],
+  },
+
   forkProcessing: "enabled",
 
   includePaths: [
