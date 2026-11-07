@@ -20,9 +20,9 @@ bareos-restapi==24.0.11 \
     --hash=sha256:17fc6b654a01619df634ad0ae0573dc74b4b3c528b88ea94f37c0b088e3c1f58 \
     --hash=sha256:40f1d92fa9d7c8b5feb0371431a228d15cf3606e4bffb7a24092801a58d6e08e
     # via -r requirements.in
-click==8.5.0 \
-    --hash=sha256:255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360 \
-    --hash=sha256:ba0d2089de75ea0310e2dde03160e6ca10009947fb95a182f9b54021bb272e34
+click==8.5.1 \
+    --hash=sha256:8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37 \
+    --hash=sha256:9bbfada76703fd1d784b83eea012e3e8c6a001a876543ef104fa56aaaeb072b4
     # via uvicorn
 ecdsa==0.19.2 \
     --hash=sha256:62635b0ac1ca2e027f82122b5b81cb706edc38cd91c63dda28e4f3455a2bf930 \
