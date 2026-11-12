@@ -1,5 +1,5 @@
 # Bareos Web-ui Dockerfile
-FROM ubuntu:jammy@sha256:076e7bf82319619f28dd0aa9c02ab34b055ad37100395b4f49a2ffba04fb5e11
+FROM ubuntu:jammy@sha256:74b12b11ffa550fba1929ad4d8d16533c34f6612728469671afba1b03b66881c
 
 LABEL maintainer="bareos@ddlns.net"
 
