@@ -1,5 +1,5 @@
 # Dockerfile Bareos client/file daemon
-FROM ubuntu:jammy@sha256:74b12b11ffa550fba1929ad4d8d16533c34f6612728469671afba1b03b66881c
+FROM ubuntu:jammy@sha256:9abcaffc92a5279fff3a6a41635c0800ea33e528425fb389658806476e7defde
 
 LABEL maintainer="bareos@ddlns.net"
 
