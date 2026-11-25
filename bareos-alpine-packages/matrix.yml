@@ -5,11 +5,9 @@
 #
 # Alpine's community/bareos package covers amd64 for all of these — that installs
 # straight from the official repo, see the component Dockerfiles' TARGETARCH
-# conditional. Only aarch64 needs a custom build here, for all three versions.
+# conditional. Only aarch64 needs a custom build here, for both versions.
 
 matrix:
-  - alpine_branch: 3.21-stable
-    bareos_version: 23
   - alpine_branch: 3.23-stable
     bareos_version: 24
   - alpine_branch: 3.24-stable

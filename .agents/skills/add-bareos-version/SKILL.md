@@ -19,7 +19,7 @@ See `references/upstream-sources.md` for the authoritative mapping of Bareos ver
 Accept: a list of `{component, version, flavor}` tuples. Examples:
 
 - "Add 26-ubuntu for all standard components" → four tuples: director-pgsql, storage, client, webui, each with version=26, flavor=ubuntu
-- "Generate client/23-alpine" → one tuple
+- "Generate client/24-alpine" → one tuple
 
 **Standard components** = director-pgsql, storage, client, webui. The api component uses a pip-pinned pattern; handle it separately only if explicitly requested.
 

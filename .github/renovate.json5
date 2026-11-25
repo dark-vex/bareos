@@ -18,10 +18,14 @@
   forkProcessing: "enabled",
 
   includePaths: [
-    "director-pgsql/2[3-5]-*/**",
-    "storage/2[3-5]-*/**",
-    "client/2[3-5]-*/**",
-    "webui/2[3-5]-*/**",
+    "director-pgsql/23-ubuntu/**",
+    "director-pgsql/2[45]-*/**",
+    "storage/23-ubuntu/**",
+    "storage/2[45]-*/**",
+    "client/23-ubuntu/**",
+    "client/2[45]-*/**",
+    "webui/23-ubuntu/**",
+    "webui/2[45]-*/**",
     "api/2[3-5]-alpine/**",
     ".github/actions/*/**",
     "bareos-packages/**",
