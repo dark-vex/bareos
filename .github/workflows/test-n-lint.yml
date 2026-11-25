@@ -27,7 +27,7 @@ jobs:
       - name: Check Docker files
         run: |
           rc=0
-          for file in */2[3-5]-*/Dockerfile .github/actions/*/Dockerfile bareos-packages/Dockerfile* bareos-alpine-packages/Dockerfile*; do
+          for file in */23-ubuntu/Dockerfile api/23-alpine/Dockerfile */2[45]-*/Dockerfile .github/actions/*/Dockerfile bareos-packages/Dockerfile* bareos-alpine-packages/Dockerfile*; do
             echo "hadolint ${file}"
             ./hadolint --ignore DL3008 --ignore DL3018 --ignore DL3059 "$file" || rc=1
           done
@@ -66,7 +66,7 @@ jobs:
         run: |
           shellcheck --version
           rc=0
-          for file in */2[3-5]-*/docker-entrypoint.sh */2[3-5]-*/webhook-notify .github/actions/*/entrypoint.sh .github/actions/*/test/*.sh tests/integration/*.sh; do
+          for file in */23-ubuntu/docker-entrypoint.sh api/23-alpine/docker-entrypoint.sh */2[45]-*/docker-entrypoint.sh */23-ubuntu/webhook-notify */2[45]-*/webhook-notify .github/actions/*/entrypoint.sh .github/actions/*/test/*.sh tests/integration/*.sh; do
             [ -f "$file" ] || continue
             case "$(head -n1 "$file")" in
               *bash*) dialect='bash' ;;

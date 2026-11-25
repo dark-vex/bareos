@@ -27,7 +27,7 @@ against the live Alpine CDN (see Verification commands below).
 | 20 | alpine:3.15 | bareos-20.x | ✓ | — | yes |
 | 21 | alpine:3.17 | bareos-21.x | ✓ | — | yes |
 | 22 | alpine:3.18 | bareos-22.0.3-r1 | ✓ | ✓ | yes (deprecated by this fork — frozen, see CLAUDE.md) |
-| 23 | alpine:3.21 | bareos-23.0.4-r1 | ✓ | ✗ needs custom build | yes |
+| 23 | alpine:3.21 | bareos-23.0.4-r1 | ✓ | ✗ needs custom build | yes (deprecated by this fork — Alpine 3.21 EOL 2026-11-01, frozen, see CLAUDE.md) |
 | 24 | alpine:3.23 | bareos-24.0.7-r0 | ✓ | ✗ needs custom build | no — folded into base `bareos` |
 | 25 | alpine:3.24 | bareos-25.0.3-r0 | ✓ | ✗ needs custom build | no — folded into base `bareos` |
 

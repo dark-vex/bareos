@@ -108,14 +108,14 @@ The CI uses reusable composite actions in `.github/actions/` (prepare, build, pu
   |----------------|-------------|:-----:|:--------:|
   | 25             | 3.24        | ✓     | ✓        |
   | 24             | 3.23        | ✓     | ✓        |
-  | 23             | 3.21        | ✓     | ✓        |
+  | 23             | — (retired) | —     | —        |
 
   amd64 installs straight from Alpine's official `community` repo. arm64/v8
-  for 23/24/25 installs a package built by `bareos-alpine-packages/` — see its
+  for 24/25 installs a package built by `bareos-alpine-packages/` — see its
   README before changing this table.
-- Current active versions: 23–25 (Ubuntu and Alpine)
+- Current active versions: 23–25 on Ubuntu, 24–25 on Alpine (director, storage, client, webui); api 23–25 (python-based, unaffected by the Alpine retirement)
 - Bundled PostgreSQL: both compose examples use 17. Existing Ubuntu-stack data initialized by PostgreSQL 12 or 16 requires `pg_upgrade` or dump/restore before starting 17.
-  Supported catalog servers: 16, 17, 18 (director `pg_dump` is 18; `23-alpine` is 17, so 16/17 only). PG18 images need the volume mounted at `/var/lib/postgresql`.
+  Supported catalog servers: 16, 17, 18 (director `pg_dump` is 18). PG18 images need the volume mounted at `/var/lib/postgresql`.
 - MySQL backend was dropped upstream in Bareos 21+; this repo no longer
   carries `director-mysql/` images. This repo's own `bareos-db-migration/`
   ships Dockerfile source only — its image was never published (CI never
@@ -131,10 +131,9 @@ built only for Bareos 23's Alpine images, the sole version whose Alpine base
 ships armv7 packages upstream — 24 and 25 were already hard-blocked by an
 upstream `time_t`/`static_assert` mismatch in the filedaemon Python plugin on
 32-bit ARM). It was removed for low usage and to drop QEMU/binfmt entirely
-from this repo's CI (it was only ever used for the armv7 build job). The next
-rebuild of the `23-alpine` tags will no longer include a `linux/arm/v7`
-platform in the manifest; no action was
-taken to freeze or preserve the existing manifest.
+from this repo's CI (it was only ever used for the armv7 build job). The
+`23-alpine` tags were retired afterwards (see Deprecated versions); their
+frozen manifests contain only `linux/amd64` and `linux/arm64`.
 
 ### Deprecated versions
 

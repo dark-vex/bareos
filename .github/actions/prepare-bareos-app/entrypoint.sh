@@ -39,6 +39,15 @@ for file in $docker_files; do
     continue
   fi
   base_img=$(echo "$version_dir" |cut -d'-' -f2)
+  # Bareos 23 on Alpine is retired: Alpine 3.21, the last branch shipping
+  # Bareos 23.x, reached security EOL on 2026-11-01. The 23-alpine dirs stay
+  # in the tree for reference and the published tags stay frozen (see
+  # CLAUDE.md's Version Support section); 23-ubuntu remains maintained. api is
+  # exempt: it runs on python:3.14-alpine with PyPI bareos-restapi, not on
+  # Alpine 3.21.
+  if [[ "$version" == '23' && "$base_img" == 'alpine' && "$app" != 'api' ]]; then
+    continue
+  fi
   [[ $version -ge 20 ]] && default_backend='pgsql'
 
   # Define default tag
@@ -78,7 +87,7 @@ for file in $docker_files; do
     # from bareos-alpine-packages/ for versions it doesn't build for).
     #
     # arm64 (aarch64): Alpine's community repo covers it upstream only through
-    # version 22 (alpine:3.18); 23/24/25 install a custom-built .apk from
+    # version 22 (alpine:3.18); 24/25 install a custom-built .apk from
     # bareos-alpine-packages/ instead (see its README) — either way, arm64 is
     # buildable for every alpine version we ship.
     echo "${app} ${tag_build} amd64 ${app_dir}/${version_dir}" >> "$build_file"

@@ -42,6 +42,10 @@ jobs:
       matrix:
         version: ['23', '24', '25']
         flavor: [alpine, ubuntu]
+        exclude:
+          # 23-alpine is retired (Alpine 3.21 EOL); 23-ubuntu still builds api/23-alpine.
+          - version: '23'
+            flavor: alpine
 
     steps:
       - name: Checkout
@@ -68,9 +72,7 @@ jobs:
           FLAVOR: ${{ matrix.flavor }}
         run: |
           set -euo pipefail
-          # 23-alpine only has the generic Alpine 3.21 client (17); all others ship 18.
           expected=18
-          if [ "$VERSION" = "23" ] && [ "$FLAVOR" = "alpine" ]; then expected=17; fi
           out="$(docker run --rm --entrypoint pg_dump "itest/director:${VERSION}-${FLAVOR}" --version)"
           echo "$out"
           case "$out" in
@@ -97,8 +99,6 @@ jobs:
             [18]="postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873"
           )
           majors=(16 17 18)
-          # Alpine 3.21 (Bareos 23) has no PG18 client.
-          if [ "$VERSION" = "23" ] && [ "$FLAVOR" = "alpine" ]; then majors=(16 17); fi
           for m in "${majors[@]}"; do
             echo "::group::stack test against PostgreSQL ${m}"
             PG_IMAGE="${PG_IMAGES[$m]}" PROJECT="itest${VERSION}${FLAVOR}pg${m}" \

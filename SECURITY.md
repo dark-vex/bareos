@@ -4,14 +4,14 @@
 
 Only the actively maintained image lines receive security fixes:
 
-| Bareos version | Ubuntu images | Alpine images |
-|----------------|:-------------:|:-------------:|
-| 25             | ✓             | ✓             |
-| 24             | ✓             | ✓             |
-| 23             | ✓             | ✓             |
-| 22 and older   | ✗             | ✗             |
+| Bareos version | Ubuntu images | Alpine images (director, storage, client, webui) | API image (Alpine, Python) |
+|----------------|:-------------:|:-------------:|:-------------:|
+| 25             | ✓             | ✓             | ✓             |
+| 24             | ✓             | ✓             | ✓             |
+| 23             | ✓             | ✗             | ✓             |
+| 22 and older   | ✗             | ✗             | ✗             |
 
-Bareos 22 tags remain published but frozen — no further rebuilds or CVE
+Bareos 23 Alpine tags (Alpine 3.21 reached EOL on 2026-11-01) and Bareos 22 tags remain published but frozen — no further rebuilds or CVE
 patches. Bareos 21 and older have been removed entirely: no tags remain
 published under `darkvex/`, and their source directories were removed from
 this repository, so there is nothing left to patch.

@@ -16,7 +16,7 @@ pinned, and extending `arch=` to include `aarch64`.
 
 | Artifact bucket           | Alpine branch | Bareos version | Upstream aarch64? |
 |----------------------------|---------------|-----------------|--------------------|
-| bareos-23-alpine3.21       | 3.21-stable   | 23.0.4-r1       | no — build here    |
+| bareos-23-alpine3.21       | 3.21-stable   | 23.0.4-r1       | retired (Alpine 3.21 EOL); last published in v4 |
 | bareos-24-alpine3.23       | 3.23-stable   | 24.0.7-r0       | no — build here    |
 | bareos-25-alpine3.24       | 3.24-stable   | 25.0.3-r0       | no — build here    |
 
@@ -51,7 +51,7 @@ ls ../artifacts/bareos-25-alpine3.24/aarch64/
 ```
 
 Replace `3.24`, `3.24-stable`, and `25` with the matching matrix values (see
-`matrix.yml`) for the other two cells. Building runs under QEMU emulation unless your
+`matrix.yml`) for the other cell. Building runs under QEMU emulation unless your
 host is natively arm64 (e.g. Apple Silicon) — expect single-digit minutes native,
 several minutes to ~1 hour under emulation on a shared CI runner.
 
@@ -73,7 +73,7 @@ new `pkg/bareos-alpine-packages-vN` release and update the component Dockerfiles
 
 Workflow: `.github/workflows/build-bareos-alpine-packages.yml`
 
-- **Manual trigger** (`workflow_dispatch`): builds all three matrix cells.
+- **Manual trigger** (`workflow_dispatch`): builds both matrix cells.
 - **Scheduled**: Sundays at 04:00 UTC to rebuild against the pinned aports branches.
 - **On push** to `bareos-alpine-packages/**`: rebuilds on builder file changes.
 

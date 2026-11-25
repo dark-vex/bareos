@@ -20,17 +20,17 @@ Docker Compose.
 Weekly image builds run from GitHub Actions. Ubuntu images are built for
 `linux/amd64` only. Alpine architecture coverage varies by Bareos version —
 `linux/amd64` is always available, and `linux/arm64/v8` is available for
-every Alpine version:
+every maintained Alpine version:
 
 | Bareos version | Alpine base | amd64 | arm64/v8 |
 |:--|:--|:--:|:--:|
 | 25 | Alpine 3.24 | ✅ | ✅ |
 | 24 | Alpine 3.23 | ✅ | ✅ |
-| 23 | Alpine 3.21 | ✅ | ✅ |
+| 23 | — (retired, frozen) | ✅ | ✅ |
 | 22 | — | ✅ | — |
 
 amd64 installs Bareos straight from Alpine's official `community` repository.
-arm64/v8 for Bareos 23/24/25 installs a package built by this repo's
+arm64/v8 for Bareos 24/25 installs a package built by this repo's
 `bareos-alpine-packages/` pipeline; see `bareos-alpine-packages/README.md`
 for details.
 
@@ -45,7 +45,6 @@ for details.
 | PostgreSQL | `23-ubuntu-pgsql`, `23-ubuntu`, `23` |
 | PostgreSQL | `25-alpine-pgsql`, `25-alpine`, `alpine`, `latest` |
 | PostgreSQL | `24-alpine-pgsql`, `24-alpine` |
-| PostgreSQL | `23-alpine-pgsql`, `23-alpine` |
 
 `bareos-client`, `bareos-storage`, and `bareos-webui`:
 
@@ -56,9 +55,9 @@ for details.
 | Ubuntu 22.04 | `23-ubuntu`, `23` |
 | Alpine 3.24 | `25-alpine`, `alpine`, `latest` |
 | Alpine 3.23 | `24-alpine` |
-| Alpine 3.21 | `23-alpine` |
 
-`bareos-api`:
+`bareos-api` (unaffected by the Alpine 3.21 retirement below — it builds on
+`python:3.14-alpine`):
 
 | tags |
 |:--|
@@ -91,20 +90,33 @@ actively maintained images.
 | `bareos-webui` | `22-ubuntu`, `22`, `22-alpine` |
 | `bareos-api` | none — Bareos 22 was never built or published for `bareos-api` |
 
+The Bareos 23 Alpine images are retired too: Alpine 3.21, the last Alpine
+branch shipping Bareos 23.x, reached security EOL on 2026-11-01. The tags below
+remain published but will **not** be rebuilt or patched. Bareos 23 stays fully
+maintained on Ubuntu (`23-ubuntu`, `23`), and `bareos-api:23-alpine` is
+unaffected. Use `24-alpine` or `25-alpine` for maintained Alpine images.
+
+| image | tags |
+|:--|:--|
+| `bareos-director` | `23-alpine-pgsql`, `23-alpine` |
+| `bareos-client` | `23-alpine` |
+| `bareos-storage` | `23-alpine` |
+| `bareos-webui` | `23-alpine` |
+
 ## Version Support
 
 | Bareos version | Ubuntu image | Alpine image | API image | Notes |
 |:--|:--|:--|:--|:--|
 | 25 | `25-ubuntu` on Ubuntu 24.04 | `25-alpine` on Alpine 3.24 | `25-alpine` | Ubuntu from `download.bareos.org/current/` (moving feed, serves `~pre` builds); Alpine amd64+arm64/v8 |
 | 24 | `24-ubuntu` on Ubuntu 24.04 | `24-alpine` on Alpine 3.23 | `24-alpine` (latest) | Ubuntu from GitHub package release; Alpine amd64+arm64/v8 |
-| 23 | `23-ubuntu` on Ubuntu 22.04 | `23-alpine` on Alpine 3.21 | `23-alpine` | Ubuntu from GitHub package release; Alpine amd64+arm64/v8 |
+| 23 | `23-ubuntu` on Ubuntu 22.04 | — | `23-alpine` | Ubuntu from GitHub package release; Alpine components retired (Alpine 3.21 EOL 2026-11-01, tags frozen — see Deprecated Tags above) |
 | 22 | `22-ubuntu` on Ubuntu 22.04 | `22-alpine` on Alpine 3.18 | — | Deprecated: existing tags remain published but frozen, no further rebuilds or CVE patches (see Deprecated Tags above); `bareos-restapi` 22.x fails to import (see `bareos-api` tags above) |
 | 21 and older | — | — | — | Removed from this repository — git history keeps the old Dockerfiles. No `16`–`21` tag remains on Docker Hub under `darkvex/`; `director-mysql/` (MySQL catalog backend, dropped upstream in Bareos 21) was removed in full. See the notes below for an upstream fallback and the MySQL migration path. |
 
-Ubuntu images support `linux/amd64` only. Bareos 23-25 Alpine images support
+Ubuntu images support `linux/amd64` only. Bareos 24-25 Alpine images support
 `linux/amd64` and `linux/arm64/v8`; `linux/arm/v7` is no longer built. Both
 bundled compose examples use PostgreSQL 17.
-Catalog servers PostgreSQL 16, 17 and 18 are supported (the director's `pg_dump` is 18, except `23-alpine`, whose Alpine 3.21 base only has the 17 client, so it supports 16 and 17 only).
+Catalog servers PostgreSQL 16, 17 and 18 are supported (the director's `pg_dump` is 18).
 
 Upstream `barcus/bareos` (the project this repo was forked from) still
 publishes Bareos 18–22 images (`barcus/bareos-director:21-ubuntu`, etc.) —
@@ -210,7 +222,7 @@ Available compose files:
 The compose examples store data under `/data/(bareos|pgsql)`.
 
 Both example stacks run PostgreSQL 17. External or self-managed catalog servers
-may be PostgreSQL 16, 17 or 18 (`23-alpine`: 16 or 17 only; see above).
+may be PostgreSQL 16, 17 or 18.
 
 Note: PostgreSQL 18 images keep data in `/var/lib/postgresql/18/docker`, so
 mount the volume at `/var/lib/postgresql` instead of `/var/lib/postgresql/data`.

@@ -56,7 +56,7 @@ PostgreSQL version related in your docker-compose file.
 The limits below apply to the migration image itself (Bareos 19/20 with
 Ubuntu focal / old Alpine `pg_dump`), which is why it stays on `postgres:12`.
 They are historical for the main images: the current `director-pgsql` images
-(Bareos 23-25) support PostgreSQL 16, 17 and 18 (`23-alpine`: 16 and 17).
+(Bareos 23-25) support PostgreSQL 16, 17 and 18.
 
 Ubuntu images:
 
